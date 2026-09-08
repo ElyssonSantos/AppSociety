@@ -1,0 +1,706 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>FutStat Pro Tactical - Tabela de Classificação</title>
+<!-- Tailwind CSS v3 with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pitch: {
+              950: '#0b0c0e',
+              900: '#111215',
+              850: '#16171b',
+              800: '#1e1f25',
+              700: '#2b2d35',
+            },
+            zone: {
+              libertadores: '#2563eb',     /* Azul */
+              prelibertadores: '#f59e0b',  /* Laranja */
+              sulamericana: '#10b981',     /* Verde */
+              rebaixamento: '#ef4444',     /* Vermelho */
+              neutral: '#334155'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles for Mobile Sticky Scroll & Badge -->
+<style data-purpose="custom-scroll">
+    /* Esconder barra de rolagem mas manter navegação funcional */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Sincronia de altura de linhas da tabela fixa */
+    .table-row-h {
+      height: 46px;
+    }
+
+    /* Suporte a entalhes no iOS (Safe Area) */
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"></head>
+<body class="bg-pitch-950 text-slate-100 antialiased font-sans flex justify-center selection:bg-emerald-500/30">
+<!-- BEGIN: MobileDeviceFrame -->
+<div class="w-full max-w-md min-h-screen bg-pitch-900 flex flex-col relative border-x border-pitch-800 shadow-2xl safe-bottom">
+<!-- BEGIN: TopAppHeader -->
+<header class="sticky top-0 z-40 bg-pitch-900/95 backdrop-blur-md border-b border-pitch-800 safe-top">
+<!-- Header Principal FutStat Oficial -->
+<div class="px-4 py-3 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#e0202c] to-[#93000a] flex items-center justify-center text-white shadow-lg shadow-red-950/50 flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">sports_soccer</span>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="font-black text-base text-slate-100 tracking-tight">TABELA DE CLASSIFICAÇÃO&nbsp;</span>
+<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#e0202c]/20 text-[#ffb3ad] border border-[#e0202c]/40">GERAL</span>
+</div>
+<p class="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold">PRO TACTICAL</p>
+</div>
+</div>
+
+</div>
+<!-- Contexto de Temporada & Badge de Rodada -->
+<div class="px-4 pb-3 flex items-center justify-between border-t border-pitch-800/60 pt-2.5">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#e0202c]"></span>
+<span class="text-[10px] font-mono tracking-wider text-slate-400 font-bold uppercase">TEMPORADA 2026</span>
+<span class="text-slate-600">•</span>
+<span class="text-xs font-bold text-slate-200 tracking-tight">SOCIETY DE PRESÍDIO&nbsp;</span>
+</div>
+
+</div>
+<!-- Filtros Padronizados Geral / Mandante / Visitante -->
+
+</header>
+<!-- END: TopAppHeader -->
+<!-- BEGIN: LiveGameStatusBanner -->
+<!-- Indicador de jogos ao vivo acontecendo no momento -->
+<div class="bg-pitch-850/80 px-4 py-2 border-b border-pitch-800/80 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-2">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="text-emerald-400 font-semibold tracking-wide uppercase text-[10px]">Ao vivo agora</span>
+</div>
+<span class="text-[11px] text-slate-400">2 partidas com alteração de tabela</span>
+</div>
+<!-- END: LiveGameStatusBanner -->
+<!-- BEGIN: ClassificationTableContainer -->
+<!-- Estrutura com Rolagem Horizontal Preservando a Coluna do Time Fixa -->
+<main class="flex-1 overflow-x-auto no-scrollbar relative flex flex-col">
+<div class="min-w-full inline-block align-middle">
+<div class="relative">
+<!-- Header da Tabela -->
+<div class="flex text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-pitch-900 border-b border-pitch-800 sticky top-0 z-30">
+<!-- Coluna Fixa do Clube Header -->
+<div class="sticky left-0 z-30 bg-pitch-900 w-44 min-w-[176px] pl-3 py-2.5 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<span class="">times</span>
+</div>
+<!-- Colunas com Métricas Numéricas Header -->
+<div class="flex items-center px-1">
+<span class="w-10 text-center font-extrabold text-slate-200">Pts</span>
+<span class="w-8 text-center">PJ</span>
+<span class="w-8 text-center">VIT</span>
+<span class="w-8 text-center">E</span>
+<span class="w-8 text-center">DER</span>
+<span class="w-8 text-center">GM</span>
+<span class="w-8 text-center">GC</span>
+<span class="w-9 text-center">SG</span>
+<span class="w-36 text-center pl-2">Últimas 5</span>
+</div>
+</div>
+<!-- BEGIN: TableRowsList -->
+<div class="divide-y divide-pitch-800/60 text-xs">
+<!-- 1. Palmeiras -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-libertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">1</span>
+<div class="w-5 h-5 rounded-full bg-emerald-950 flex items-center justify-center font-bold text-[9px] text-emerald-300 border border-emerald-500/40 mr-2 flex-shrink-0">PAL</div>
+<span class="font-medium text-slate-100 truncate">Palmeiras</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">52</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">15</span>
+<span class="w-8 text-center text-slate-300">7</span>
+<span class="w-8 text-center text-slate-300">3</span>
+<span class="w-8 text-center text-slate-400">45</span>
+<span class="w-8 text-center text-slate-400">21</span>
+<span class="w-9 text-center text-slate-200 font-semibold">24</span>
+<!-- Últimas 5 -->
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 2. Flamengo -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-libertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">2</span>
+<div class="w-5 h-5 rounded-full bg-red-950 flex items-center justify-center font-bold text-[9px] text-red-400 border border-red-500/40 mr-2 flex-shrink-0">FLA</div>
+<span class="font-medium text-slate-100 truncate">Flamengo</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">51</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">15</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">4</span>
+<span class="w-8 text-center text-slate-400">50</span>
+<span class="w-8 text-center text-slate-400">21</span>
+<span class="w-9 text-center text-slate-200 font-semibold">29</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 3. Athletico-PR -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-libertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">3</span>
+<div class="w-5 h-5 rounded-full bg-red-950 flex items-center justify-center font-bold text-[9px] text-red-400 border border-red-500/40 mr-2 flex-shrink-0">CAP</div>
+<span class="font-medium text-slate-100 truncate">Athletico-PR</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">45</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">13</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-400">37</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-9 text-center text-slate-200 font-semibold">12</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 4. Fluminense -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-libertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">4</span>
+<div class="w-5 h-5 rounded-full bg-emerald-950 flex items-center justify-center font-bold text-[9px] text-red-300 border border-emerald-500/40 mr-2 flex-shrink-0">FLU</div>
+<span class="font-medium text-slate-100 truncate">Fluminense</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">45</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-300">12</span>
+<span class="w-8 text-center text-slate-300">9</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-400">40</span>
+<span class="w-8 text-center text-slate-400">32</span>
+<span class="w-9 text-center text-slate-200 font-semibold">8</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 5. Bahia -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-prelibertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">5</span>
+<div class="w-5 h-5 rounded-full bg-blue-950 flex items-center justify-center font-bold text-[9px] text-blue-300 border border-blue-500/40 mr-2 flex-shrink-0">BAH</div>
+<span class="font-medium text-slate-100 truncate">Bahia</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">43</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-300">11</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-400">40</span>
+<span class="w-8 text-center text-slate-400">32</span>
+<span class="w-9 text-center text-slate-200 font-semibold">8</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 6. Cruzeiro -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-prelibertadores mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">6</span>
+<div class="w-5 h-5 rounded-full bg-blue-900 flex items-center justify-center font-bold text-[9px] text-blue-200 border border-blue-400/40 mr-2 flex-shrink-0">CRU</div>
+<span class="font-medium text-slate-100 truncate">Cruzeiro</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">39</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">11</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-400">35</span>
+<span class="w-8 text-center text-slate-400">36</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-1</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 7. Coritiba (AO VIVO 1-1) -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors bg-pitch-850/20">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">7</span>
+<div class="w-5 h-5 rounded-full bg-emerald-950 flex items-center justify-center font-bold text-[9px] text-emerald-300 border border-emerald-500/40 mr-2 flex-shrink-0">CFC</div>
+<span class="font-medium text-slate-100 truncate mr-1.5">Coritiba</span>
+<!-- Badge Ao Vivo 1-1 -->
+<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-pitch-800 border border-slate-700 font-mono text-[9px] font-bold text-slate-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="">1-1</span>
+</div>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">38</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-400">34</span>
+<span class="w-8 text-center text-slate-400">34</span>
+<span class="w-9 text-center text-slate-300 font-semibold">0</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 8. Atlético-MG -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">8</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-white border border-slate-600 mr-2 flex-shrink-0">CAM</div>
+<span class="font-medium text-slate-100 truncate">Atlético-MG</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">36</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">9</span>
+<span class="w-8 text-center text-slate-400">32</span>
+<span class="w-8 text-center text-slate-400">30</span>
+<span class="w-9 text-center text-slate-200 font-semibold">2</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 9. Bragantino -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">9</span>
+<div class="w-5 h-5 rounded-full bg-red-950 flex items-center justify-center font-bold text-[9px] text-red-200 border border-red-500/40 mr-2 flex-shrink-0">RBB</div>
+<span class="font-medium text-slate-100 truncate">Bragantino</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">35</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-400">31</span>
+<span class="w-8 text-center text-slate-400">28</span>
+<span class="w-9 text-center text-slate-200 font-semibold">3</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 10. São Paulo -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">10</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-red-400 border border-slate-500 mr-2 flex-shrink-0">SPFC</div>
+<span class="font-medium text-slate-100 truncate">São Paulo</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">33</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">9</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-400">31</span>
+<span class="w-8 text-center text-slate-400">28</span>
+<span class="w-9 text-center text-slate-200 font-semibold">3</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 11. Corinthians -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">11</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-white border border-slate-500 mr-2 flex-shrink-0">COR</div>
+<span class="font-medium text-slate-100 truncate">Corinthians</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">32</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">9</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-9 text-center text-slate-200 font-semibold">1</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 12. Botafogo -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-sulamericana mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-300 mr-2 text-[11px]">12</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-white border border-slate-500 mr-2 flex-shrink-0">BOT</div>
+<span class="font-medium text-slate-100 truncate">Botafogo</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">30</span>
+<span class="w-8 text-center text-slate-400">24</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-400">37</span>
+<span class="w-8 text-center text-slate-400">40</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-3</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 13. EC Vitória -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-transparent mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-400 mr-2 text-[11px]">13</span>
+<div class="w-5 h-5 rounded-full bg-red-950 flex items-center justify-center font-bold text-[9px] text-red-300 border border-red-500/40 mr-2 flex-shrink-0">VIT</div>
+<span class="font-medium text-slate-200 truncate">EC Vitória</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">29</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-300">12</span>
+<span class="w-8 text-center text-slate-400">24</span>
+<span class="w-8 text-center text-slate-400">37</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-13</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 14. Santos -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-transparent mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-400 mr-2 text-[11px]">14</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-white border border-slate-500 mr-2 flex-shrink-0">SAN</div>
+<span class="font-medium text-slate-200 truncate">Santos</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">29</span>
+<span class="w-8 text-center text-slate-400">24</span>
+<span class="w-8 text-center text-slate-300">7</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">9</span>
+<span class="w-8 text-center text-slate-400">34</span>
+<span class="w-8 text-center text-slate-400">36</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-2</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 15. Grêmio -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-transparent mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-400 mr-2 text-[11px]">15</span>
+<div class="w-5 h-5 rounded-full bg-blue-950 flex items-center justify-center font-bold text-[9px] text-blue-300 border border-blue-500/40 mr-2 flex-shrink-0">GRE</div>
+<span class="font-medium text-slate-200 truncate">Grêmio</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">28</span>
+<span class="w-8 text-center text-slate-400">24</span>
+<span class="w-8 text-center text-slate-300">7</span>
+<span class="w-8 text-center text-slate-300">7</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-400">27</span>
+<span class="w-8 text-center text-slate-400">32</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-5</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 16. Mirassol (AO VIVO 1-1) -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors bg-pitch-850/20">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-transparent mr-2.5"></div>
+<span class="w-4 text-center font-bold text-slate-400 mr-2 text-[11px]">16</span>
+<div class="w-5 h-5 rounded-full bg-yellow-950 flex items-center justify-center font-bold text-[9px] text-yellow-300 border border-yellow-500/40 mr-2 flex-shrink-0">MIR</div>
+<span class="font-medium text-slate-200 truncate mr-1.5">Mirassol</span>
+<!-- Badge Ao Vivo 1-1 -->
+<div class="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-pitch-800 border border-slate-700 font-mono text-[9px] font-bold text-slate-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="">1-1</span>
+</div>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">26</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">12</span>
+<span class="w-8 text-center text-slate-400">28</span>
+<span class="w-8 text-center text-slate-400">40</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-12</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 17. Vasco da Gama (Z-4) -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-rebaixamento mr-2.5"></div>
+<span class="w-4 text-center font-bold text-rose-400 mr-2 text-[11px]">17</span>
+<div class="w-5 h-5 rounded-full bg-neutral-900 flex items-center justify-center font-bold text-[9px] text-white border border-slate-500 mr-2 flex-shrink-0">VAS</div>
+<span class="font-medium text-slate-100 truncate">Vasco da Gama</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">25</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">6</span>
+<span class="w-8 text-center text-slate-300">7</span>
+<span class="w-8 text-center text-slate-300">12</span>
+<span class="w-8 text-center text-slate-400">27</span>
+<span class="w-8 text-center text-slate-400">40</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-13</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 18. Internacional (Z-4) -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-rebaixamento mr-2.5"></div>
+<span class="w-4 text-center font-bold text-rose-400 mr-2 text-[11px]">18</span>
+<div class="w-5 h-5 rounded-full bg-red-950 flex items-center justify-center font-bold text-[9px] text-red-300 border border-red-500/40 mr-2 flex-shrink-0">INT</div>
+<span class="font-medium text-slate-100 truncate">Internacional</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">25</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-300">10</span>
+<span class="w-8 text-center text-slate-400">26</span>
+<span class="w-8 text-center text-slate-400">31</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-5</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+<!-- 19. Remo (Z-4) -->
+<div class="flex items-center table-row-h hover:bg-pitch-850/50 transition-colors">
+<div class="sticky left-0 z-20 bg-pitch-900 table-row-h w-44 min-w-[176px] pl-0 pr-2 flex items-center border-r border-pitch-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+<div class="w-1 h-full bg-zone-rebaixamento mr-2.5"></div>
+<span class="w-4 text-center font-bold text-rose-400 mr-2 text-[11px]">19</span>
+<div class="w-5 h-5 rounded-full bg-blue-950 flex items-center justify-center font-bold text-[9px] text-blue-300 border border-blue-600 mr-2 flex-shrink-0">REM</div>
+<span class="font-medium text-slate-100 truncate">Remo</span>
+</div>
+<div class="flex items-center px-1 font-mono text-[11px]">
+<span class="w-10 text-center font-bold text-slate-100">23</span>
+<span class="w-8 text-center text-slate-400">25</span>
+<span class="w-8 text-center text-slate-300">5</span>
+<span class="w-8 text-center text-slate-300">8</span>
+<span class="w-8 text-center text-slate-300">12</span>
+<span class="w-8 text-center text-slate-400">30</span>
+<span class="w-8 text-center text-slate-400">42</span>
+<span class="w-9 text-center text-rose-400 font-semibold">-12</span>
+<div class="w-36 flex items-center justify-center space-x-1 pl-2 font-sans">
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+<span class="w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center text-white"><svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg></span>
+</div>
+</div>
+</div>
+</div>
+<!-- END: TableRowsList -->
+</div>
+</div>
+</main>
+<!-- END: ClassificationTableContainer -->
+<!-- BEGIN: TableLegend -->
+<!-- Legenda de Cores de Qualificação e Rebaixamento -->
+<section class="p-3.5 bg-pitch-900 border-t border-pitch-800 text-[11px] text-slate-300">
+<div class="grid grid-cols-2 gap-2">
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-sm bg-zone-libertadores flex-shrink-0"></span>
+<span class="truncate">Times Desenvolvidos</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-sm bg-zone-prelibertadores flex-shrink-0"></span>
+<span class="truncate">Times Em Desenvolvimento</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-sm bg-zone-sulamericana flex-shrink-0"></span>
+<span class="truncate">Times Medianos</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-sm bg-zone-rebaixamento flex-shrink-0"></span>
+<span class="truncate">Times Inferiores</span>
+</div>
+</div>
+</section>
+<!-- END: TableLegend -->
+<!-- BEGIN: BottomNavigation -->
+<!-- Barra de Navegação Padrão FutStat Pro Tactical -->
+<nav class="sticky bottom-0 z-40 bg-pitch-900/95 backdrop-blur-md border-t border-pitch-800 px-4 py-2 safe-bottom">
+<div class="flex items-center justify-around">
+<!-- Tab Início -->
+<button class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition-colors min-w-[56px]">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+<span class="text-[10px] font-medium tracking-tight">Início</span>
+</button>
+<!-- Tab Partidas -->
+<button class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition-colors min-w-[56px]">
+<span class="material-symbols-outlined text-[20px]">sports_soccer</span>
+<span class="text-[10px] font-medium tracking-tight">Partidas</span>
+</button>
+<!-- Tab Tabela (Ativo) -->
+<button class="flex flex-col items-center space-y-1 text-[#ffb3ad] min-w-[56px]">
+<div class="relative flex flex-col items-center">
+<span class="material-symbols-outlined text-[20px] text-[#e0202c]">leaderboard</span>
+<span class="text-[10px] font-bold tracking-tight text-white">Tabela</span>
+</div>
+</button>
+<!-- Tab Tático -->
+<button class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition-colors min-w-[56px]">
+<span class="material-symbols-outlined text-[20px]">tactic</span>
+<span class="text-[10px] font-medium tracking-tight">Tático</span>
+</button>
+<!-- Tab Elencos -->
+<button class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-200 transition-colors min-w-[56px]">
+<span class="material-symbols-outlined text-[20px]">groups</span>
+<span class="text-[10px] font-medium tracking-tight">Elencos</span>
+</button>
+</div>
+</nav>
+<!-- END: BottomNavigation -->
+</div>
+<!-- END: MobileDeviceFrame -->
+
+
+</body></html>

@@ -1,0 +1,492 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&amp;family=Plus+Jakarta+Sans:wght@100..900&amp;family=Space+Grotesk:wght@100..900&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-tint": "#ffb3ad", "inverse-surface": "#e3e2e6", "on-primary-fixed-variant": "#930013", "tertiary": "#ffb95f", "on-surface": "#e3e2e6", "outline": "#ad8885", "background": "#121316", "tertiary-container": "#a16600", "error": "#ffb4ab", "on-secondary-fixed": "#002113", "secondary-container": "#00a572", "surface": "#121316", "surface-container": "#1f1f23", "secondary": "#4edea3", "inverse-primary": "#c0001c", "on-tertiary": "#472a00", "primary-fixed": "#ffdad7", "secondary-fixed-dim": "#4edea3", "on-error": "#690005", "surface-container-low": "#1b1b1f", "on-secondary": "#003824", "on-tertiary-container": "#fff9f5", "surface-bright": "#38393c", "on-secondary-fixed-variant": "#005236", "primary-fixed-dim": "#ffb3ad", "outline-variant": "#5d3f3d", "on-tertiary-fixed": "#2a1700", "surface-container-lowest": "#0d0e11", "on-error-container": "#ffdad6", "on-secondary-container": "#00311f", "on-tertiary-fixed-variant": "#653e00", "on-primary": "#68000a", "on-primary-fixed": "#410004", "tertiary-fixed": "#ffddb8", "surface-container-highest": "#343538", "secondary-fixed": "#6ffbbe", "on-background": "#e3e2e6", "inverse-on-surface": "#2f3034", "error-container": "#93000a", "primary": "#ffb3ad", "primary-container": "#e0202c", "surface-dim": "#121316", "surface-container-high": "#292a2d", "on-primary-container": "#fff8f7", "surface-variant": "#343538", "on-surface-variant": "#e6bdb9", "tertiary-fixed-dim": "#ffb95f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "1.5rem", "space-3xl": "2.5rem", "space-2xl": "2rem", "gutter-desktop": "1.5rem", "space-sm": "0.75rem", "card-pad-sm": "0.875rem", "gutter-mobile": "1rem", "card-pad-md": "1.25rem", "space-lg": "1.25rem", "space-xxs": "0.25rem", "space-xs": "0.5rem", "space-md": "1rem" }, "fontFamily": { "body-sm": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "display-score": ["Outfit"], "label-badge": ["Space Grotesk"], "body-lg": ["Plus Jakarta Sans"], "stat-metric": ["Outfit"], "headline-lg": ["Outfit"], "headline-xl": ["Outfit"], "label-tactical": ["Space Grotesk"], "headline-md": ["Outfit"] }, "fontSize": { "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-score": ["48px", { "lineHeight": "52px", "letterSpacing": "-0.04em", "fontWeight": "800" }], "label-badge": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }], "stat-metric": ["24px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-xl": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-tactical": ["13px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }], "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]"><div class="h-16 px-gutter-mobile flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="Voltar" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:text-primary transition-colors active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><img alt="FutStat App Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_LiZsohE-EHA6hh-8Dwd49-3Ada5fqlICsuISwQuBUtUFv_YXh8IBtf6pl7tx-ZM7gxXVubfX_H5DjwUO1ar9Ypg9AzgjjHsdw-8_Qt3YT_opN9HjT20jc6Y_wIGW9BfflJStMUSE8aqySmsUtWEJ-IzONGA6YQgLfllNRSrfSKt-_QFUFkP57sLsK05Gey-4dJA8oAJthF5h5hxCG7lKtE4SFZ0h16j6jRq8kKhAoiYUTlJ35qZf"><h1 class="font-headline-md text-headline-md text-on-surface tracking-tight truncate max-w-[150px]">Detalhes Da Partida</h1></div><div class="flex items-center gap-space-xxs"><button aria-label="Compartilhar" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-surface min-h-screen px-gutter-mobile"><div class="flex flex-col w-full pb-10 space-y-space-md">
+<!-- Live Match Broadcast Header Context -->
+<section class="flex flex-col bg-surface-container-high rounded-xl p-card-pad-md relative overflow-hidden shadow-xl">
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-primary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-container"></span>
+</span>
+<span class="font-label-badge text-label-badge uppercase tracking-wider text-primary-fixed bg-primary-container/20 px-2 py-0.5 rounded-full">
+          Ao Vivo • 84:15
+        </span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px]">sensors</span>
+<span class="font-label-badge text-label-badge uppercase tracking-wide">Sync Oficial</span>
+</div>
+</div>
+<!-- Match Scoreboard Display -->
+<div class="flex items-center justify-between py-space-xs">
+<!-- Home Club -->
+<div class="flex flex-col items-center flex-1">
+<div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center p-1.5 shadow-md">
+<img class="w-full h-full object-contain rounded-full" data-alt="Official club crest badge of Manchester United in high contrast digital sports style with crimson and gold details on dark shield emblem." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeU0IULagKQLzf7Rvo_mbkiEINPZnxQBKCYoojQDuPqBLByGH4yZRInCI9GVC62DRm9nuo6ijkpjJTd2FaogpPQYvtEHoh4Dw6cdg10mf8HpyaSWtkfSW4pcDziibqGQlZE6grhj8RzBCoJBqTMLN1CDABdRev9IjQk_6Vt-K7VLuSCADEjTRt7tzqYREaeNhT_ZSFU9WbKBfbDE4-jRGX5hfYc49celIxFfAh4qUYidTZgbT2JA6l">
+</div>
+<span class="font-headline-md text-headline-md text-on-surface mt-1.5 tracking-tight text-center">Man United</span>
+<span class="font-label-badge text-label-badge text-primary-fixed">Mandante</span>
+</div>
+<!-- Core Score & Timer -->
+<div class="flex flex-col items-center px-space-md">
+<div class="flex items-baseline gap-space-xs">
+<span class="font-display-score text-display-score text-on-surface" id="score-home">3</span>
+<span class="font-display-score text-display-score text-outline-variant font-light">:</span>
+<span class="font-display-score text-display-score text-on-surface" id="score-away">1</span>
+</div>
+<div class="bg-surface-container-lowest px-2.5 py-0.5 rounded-full mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-tertiary">timer</span>
+<span class="font-label-tactical text-label-tactical text-tertiary">85' 2ºT</span>
+</div>
+</div>
+<!-- Away Club -->
+<div class="flex flex-col items-center flex-1">
+<div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center p-1.5 shadow-md">
+<img class="w-full h-full object-contain rounded-full" data-alt="Official club crest badge of Manchester City in athletic vector style with sky blue and navy accents on dark circular crest." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD13meFxKlRgyuaFeUoXZm28jF8z3JPydxXCZokmSbyygKxrKcF2oeYAK7_8SNoC3iTS6zHwGDmMtqtL7UAWQiFSv9aCNV6kHS1TcNcJ6vTI5f_pCRrGzX1wg6vqOqKLL-h5aJR72ZG1VEw3aOAEiMyXQw5pFkwqPW7hl9Z1fAgJDIGrxayc4nT6oUBWwHbt94p3f7tgSTrnyIgWsylmLILnLMfewV7P7pissvo-KRU1ArjjUKKHM68">
+</div>
+<span class="font-headline-md text-headline-md text-on-surface mt-1.5 tracking-tight text-center">Man City</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Visitante</span>
+</div>
+</div>
+<!-- Live Event Ticker -->
+<div class="mt-space-xs pt-space-xs bg-surface-container-low/70 rounded-lg p-2.5">
+<div class="flex items-center justify-between text-on-surface-variant text-body-sm font-body-sm mb-1">
+<span class="font-label-tactical text-label-tactical text-on-surface">Artilheiros em Campo:</span>
+<span class="text-[11px] text-secondary font-label-badge">Recém-atualizado</span>
+</div>
+<div class="flex flex-wrap gap-1.5">
+<span class="bg-surface-container-high px-2 py-0.5 rounded text-[11px] text-on-surface flex items-center gap-1">
+          ⚽ Rashford 34', 68', 85'
+        </span>
+<span class="bg-surface-container-high px-2 py-0.5 rounded text-[11px] text-on-surface-variant flex items-center gap-1">
+          ⚽ Haaland 51'
+        </span>
+</div>
+</div>
+</section>
+<!-- Club Selector Segment -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">1. Clube do Evento</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Selecione para registrar</span>
+</div>
+<div class="grid grid-cols-2 gap-space-xs">
+<!-- Team A Selection Button -->
+<button class="flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-primary-container text-on-primary-container shadow-lg transition-all active:scale-[0.98]" id="btn-team-home" onclick="selectTeam('home')" type="button">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-white/10 p-0.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-white">shield</span>
+</div>
+<span class="font-label-tactical text-label-tactical text-white">Man United</span>
+</div>
+<div class="mt-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+<span class="font-label-badge text-label-badge text-white/90">Mandante Ativo</span>
+</div>
+</button>
+<!-- Team B Selection Button -->
+<button class="flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all active:scale-[0.98]" id="btn-team-away" onclick="selectTeam('away')" type="button">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-container-low p-0.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">shield</span>
+</div>
+<span class="font-label-tactical text-label-tactical">Man City</span>
+</div>
+<div class="mt-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-surface-variant"></span>
+<span class="font-label-badge text-label-badge">Visitante</span>
+</div>
+</button>
+</div>
+</section>
+<!-- Player Selection Section -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">2. Jogador Principal</span>
+<span class="text-body-sm font-body-sm text-primary" id="player-filter-label">Manchester United</span>
+</div>
+<div class="flex gap-space-xs overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
+<!-- Player 1 Active -->
+<button class="player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all" onclick="selectPlayer(this, 'Marcus Rashford', '#10')" type="button">
+<div class="relative w-8 h-8 rounded-full overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Athletic face portrait cutout of football striker Marcus Rashford with concentrated expression on dark field backdrop." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAufZgIMfM1WX50qTmB25j6K3nDYL3DZabpP7-hKrsEQUyfKjD-Kw__uXZYjufuQsA868qWHPGC1O8PI5EB2mK2AKPK8O5zMWdwUavdL_IkPKho-6D9Vwv7CMp8JerrvsgKVaJyIpS2dpcoKkNVGItbB_QSxzal-IxW_rGM1a0hNcaChcLCBFBrTW37d-_tttD-bPnpg8l0pj_ht422vhRa6Z1LSy5XX-9zHQQ5owjz43wXvRiUM0qh">
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-on-surface leading-none">M. Rashford</span>
+<span class="font-label-badge text-label-badge text-secondary mt-0.5">#10 • ATA</span>
+</div>
+</button>
+<!-- Player 2 -->
+<button class="player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-on-surface-variant shadow-sm active:scale-95 transition-all" onclick="selectPlayer(this, 'Bruno Fernandes', '#8')" type="button">
+<div class="relative w-8 h-8 rounded-full overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Close up face profile of Portuguese football playmaker Bruno Fernandes looking focused during tactical live play." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_SfQKhtJyLn8bglFMAl42RKxFw5vTFsOB8xyQmBoy6bBRaJhmr4KhyqQw2z7vSUUXPxEDrlkcCMy04pc6dwItKPFw20iSKp5n_8I8-5DYTkNcUL4ypY701TYB9bxLxagxI9VD9fh40SezhwX7XdhzBQw1eBwqfuTj0_V5E4t2h8oeNOJkXEwv2gLT9Mq4VqmQo_lULFqrxu-88Nvb46iMm81_lyBrRUKyTITjSHIG4AcMfWcDOTO3">
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-on-surface leading-none">B. Fernandes</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant mt-0.5">#8 • MEI</span>
+</div>
+</button>
+<!-- Player 3 -->
+<button class="player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-on-surface-variant shadow-sm active:scale-95 transition-all" onclick="selectPlayer(this, 'Casemiro', '#18')" type="button">
+<div class="relative w-8 h-8 rounded-full overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Portrait cutout of defensive midfielder Casemiro in tactical stance with focused dark stadium background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAJrwYE67jI9XnH4xeCrDKiwxsivNZIbzkswsq4slagbkMEtkm1uhjuQjZZVMnTGCEUBbQtnBjGXYs-edbV9FKwy4B_Y3b00eJncople6p5tI8pRQ6yb09X-0BZdKIExg5BfyOI65EFvJ79ub4TGxGTLXX1QJ5HPLq-A3d8sSsSnDJ7sFMvM7hCDFGssrOZfJZMsBejNhoOQeGA6bRyMl-W41MOXJJedaeehqsbNlMqBRmP72oPmV7">
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-on-surface leading-none">Casemiro</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant mt-0.5">#18 • VOL</span>
+</div>
+</button>
+<!-- Player 4 -->
+<button class="player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-on-surface-variant shadow-sm active:scale-95 transition-all" onclick="selectPlayer(this, 'Antony', '#21')" type="button">
+<div class="relative w-8 h-8 rounded-full overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Athletic face photo of winger Antony with focused expression ready for tactical match action." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3NL_93muc9jFwo0RvSRr-VQ-soDTPkZ0koYF5n8A3LBjb0TLGlk6vxZXo5BZoqGUR0kTrFaWhLeUQmYDa7aBgGfRnU_U7DMuGJSqO0INzzc2WbWsg63MsIVsKYc065NR3h--udx4xywUVuTkPq8wtZKhC302fl9FOPtbALFQl2oO4SoUEC30VmkZJyEQyIW0a9hrE_6YOfYakZIhxZtGvOd4Eftj_GHwQaf1Zht2JpzP66k3Qf_rf">
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-on-surface leading-none">Antony</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant mt-0.5">#21 • PON</span>
+</div>
+</button>
+</div>
+</section>
+<!-- Event Type Tactical Selection -->
+<section class="flex flex-col space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">3. Tipo de Evento</span>
+<div class="flex items-center gap-1 bg-surface-container-high px-2 py-1 rounded-lg">
+<span class="font-label-badge text-label-badge text-on-surface-variant">Minuto:</span>
+<input class="w-8 bg-transparent text-center font-label-tactical text-label-tactical text-tertiary focus:outline-none" id="event-minute" max="120" min="1" type="number" value="85">
+<span class="font-label-badge text-label-badge text-on-surface-variant">'</span>
+</div>
+</div>
+<!-- Event Category Matrix -->
+<div class="grid grid-cols-2 gap-space-xs">
+<!-- Goal Button (Active Highlight) -->
+<button class="event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-primary-container text-on-primary-container shadow-md active:scale-95 transition-all" id="evt-goal" onclick="selectEventType('goal')" type="button">
+<div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-[22px]">
+          ⚽
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-white">GOL Marcado</span>
+<span class="font-label-badge text-label-badge text-white/80">Atualiza placar</span>
+</div>
+</button>
+<!-- Shot on Target -->
+<button class="event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all" id="evt-shot" onclick="selectEventType('shot')" type="button">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-[20px]">
+          🎯
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-on-surface">Chute a Gol</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Defendido / Trave</span>
+</div>
+</button>
+<!-- Red Card -->
+<button class="event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all" id="evt-red" onclick="selectEventType('red')" type="button">
+<div class="w-10 h-10 rounded-lg bg-error-container/40 flex items-center justify-center text-[20px]">
+          🟥
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-error">Cartão Vermelho</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Expulsão direta</span>
+</div>
+</button>
+<!-- Substitution -->
+<button class="event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all" id="evt-sub" onclick="selectEventType('sub')" type="button">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center text-[20px]">
+          🔄
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-label-tactical text-label-tactical text-secondary">Substituição</span>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Entrada / Saída</span>
+</div>
+</button>
+</div>
+<!-- Quick Micro Badges (Yellow card, Foul, Penalty) -->
+<div class="flex items-center gap-space-xs pt-1">
+<button class="flex-1 py-1.5 px-2 bg-surface-container-high hover:bg-surface-variant rounded-lg text-center font-label-badge text-label-badge text-tertiary transition-colors active:scale-95" onclick="selectQuickTag('Cartão Amarelo 🟨')" type="button">
+        🟨 Amarelo
+      </button>
+<button class="flex-1 py-1.5 px-2 bg-surface-container-high hover:bg-surface-variant rounded-lg text-center font-label-badge text-label-badge text-on-surface-variant transition-colors active:scale-95" onclick="selectQuickTag('Falta Tática 🛑')" type="button">
+        🛑 Falta
+      </button>
+<button class="flex-1 py-1.5 px-2 bg-surface-container-high hover:bg-surface-variant rounded-lg text-center font-label-badge text-label-badge text-primary transition-colors active:scale-95" onclick="selectQuickTag('Pênalti Marcado ⚡')" type="button">
+        ⚡ Pênalti
+      </button>
+</div>
+</section>
+<!-- Conditional Event Parameter: Goal Assistance -->
+<section class="flex flex-col p-card-pad-sm bg-surface-container-high rounded-xl space-y-space-xs shadow-sm" id="goal-details-card">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">sports</span>
+<span class="font-label-tactical text-label-tactical">Assistência (Passe para o Gol)</span>
+</div>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Opcional</span>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container-lowest p-2 rounded-lg">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">person_search</span>
+<select class="w-full bg-transparent text-body-md font-body-md text-on-surface focus:outline-none" id="select-assist">
+<option class="bg-surface-container-high text-on-surface" value="Bruno Fernandes">Bruno Fernandes (#8 - Cruzamento preciso)</option>
+<option class="bg-surface-container-high text-on-surface" value="Casemiro">Casemiro (#18 - Lançamento longo)</option>
+<option class="bg-surface-container-high text-on-surface" value="Luke Shaw">Luke Shaw (#23 - Passe rasteiro)</option>
+<option class="bg-surface-container-high text-on-surface" value="Sem Assistência">Sem assistência (Gol individual / Rebote)</option>
+</select>
+</div>
+</section>
+<!-- Dynamic Actions Block -->
+<section class="flex flex-col space-y-space-xs pt-space-xs">
+<button class="w-full h-12 rounded-xl bg-primary-container text-on-primary-container font-headline-md text-headline-md flex items-center justify-center gap-2 shadow-lg shadow-primary-container/20 active:scale-[0.98] transition-all" onclick="confirmLiveEvent()" type="button">
+<span class="material-symbols-outlined text-[22px]">bolt</span>
+<span>Confirmar e Atualizar Placar</span>
+</button>
+<div class="flex items-center justify-between px-1">
+<button class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm transition-colors py-1" onclick="clearForm()" type="button">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+<span>Limpar Formulário</span>
+</button>
+<div class="opacity-0 transition-opacity duration-300 flex items-center gap-1 text-secondary text-body-sm font-body-sm" id="sync-notification">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Placar sincronizado!</span>
+</div>
+</div>
+</section>
+<!-- Real-Time Registered Events Timeline -->
+<section class="flex flex-col space-y-space-xs pt-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md text-on-surface">Feed do Minuto a Minuto</span>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-label-badge text-label-badge">4 lances</span>
+</div>
+<span class="font-label-badge text-label-badge text-on-surface-variant">Mais recentes primeiro</span>
+</div>
+<!-- Incident List -->
+<div class="flex flex-col space-y-space-xs" id="incidents-feed">
+<!-- Incident 1 (Newly added highlight) -->
+<div class="incident-item flex items-center justify-between p-card-pad-sm rounded-xl bg-surface-container-high shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container/20 text-primary-container flex items-center justify-center font-display-score text-[18px]">
+            ⚽
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tactical text-label-tactical text-tertiary">85'</span>
+<span class="font-label-tactical text-label-tactical text-on-surface">GOL! M. Rashford</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Assistência: B. Fernandes • Man United [3]-1</span>
+</div>
+</div>
+<button aria-label="Desfazer lance" class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" onclick="removeIncident(this, true)" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<!-- Incident 2 -->
+<div class="incident-item flex items-center justify-between p-card-pad-sm rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-secondary-container/20 text-secondary flex items-center justify-center font-display-score text-[16px]">
+            🔄
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tactical text-label-tactical text-on-surface-variant">72'</span>
+<span class="font-label-tactical text-label-tactical text-on-surface">Substituição Tática</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Entra: Antony 🔺 | Sai: Garnacho 🔻</span>
+</div>
+</div>
+<button aria-label="Desfazer lance" class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" onclick="removeIncident(this, false)" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<!-- Incident 3 -->
+<div class="incident-item flex items-center justify-between p-card-pad-sm rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container/20 text-primary-container flex items-center justify-center font-display-score text-[18px]">
+            ⚽
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tactical text-label-tactical text-on-surface-variant">68'</span>
+<span class="font-label-tactical text-label-tactical text-on-surface">GOL! M. Rashford</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Finalização na gaveta • Man United [2]-1</span>
+</div>
+</div>
+<button aria-label="Desfazer lance" class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" onclick="removeIncident(this, false)" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<!-- Incident 4 -->
+<div class="incident-item flex items-center justify-between p-card-pad-sm rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-variant text-on-surface flex items-center justify-center font-display-score text-[18px]">
+            ⚽
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tactical text-label-tactical text-on-surface-variant">51'</span>
+<span class="font-label-tactical text-label-tactical text-on-surface">GOL! E. Haaland</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Man City [1] - 1 Man United</span>
+</div>
+</div>
+<button aria-label="Desfazer lance" class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" onclick="removeIncident(this, false)" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<script>
+  let activeTeam = 'home';
+  let activePlayer = 'Marcus Rashford';
+  let activeEventType = 'goal';
+
+  function selectTeam(team) {
+    activeTeam = team;
+    const homeBtn = document.getElementById('btn-team-home');
+    const awayBtn = document.getElementById('btn-team-away');
+    const playerFilterLabel = document.getElementById('player-filter-label');
+
+    if (team === 'home') {
+      homeBtn.className = "flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-primary-container text-on-primary-container shadow-lg transition-all active:scale-[0.98]";
+      homeBtn.querySelector('.material-symbols-outlined').className = "material-symbols-outlined text-[16px] text-white";
+      
+      awayBtn.className = "flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all active:scale-[0.98]";
+      awayBtn.querySelector('.material-symbols-outlined').className = "material-symbols-outlined text-[16px]";
+      
+      playerFilterLabel.textContent = "Manchester United";
+      playerFilterLabel.className = "text-body-sm font-body-sm text-primary";
+    } else {
+      awayBtn.className = "flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-primary-container text-on-primary-container shadow-lg transition-all active:scale-[0.98]";
+      awayBtn.querySelector('.material-symbols-outlined').className = "material-symbols-outlined text-[16px] text-white";
+      
+      homeBtn.className = "flex flex-col items-center justify-center p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all active:scale-[0.98]";
+      homeBtn.querySelector('.material-symbols-outlined').className = "material-symbols-outlined text-[16px]";
+      
+      playerFilterLabel.textContent = "Manchester City";
+      playerFilterLabel.className = "text-body-sm font-body-sm text-secondary";
+    }
+  }
+
+  function selectPlayer(btn, name, number) {
+    activePlayer = name;
+    document.querySelectorAll('.player-pill').forEach(el => {
+      el.className = "player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-on-surface-variant shadow-sm active:scale-95 transition-all";
+    });
+    btn.className = "player-pill flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all";
+  }
+
+  function selectEventType(type) {
+    activeEventType = type;
+    const goalCard = document.getElementById('goal-details-card');
+    const cards = document.querySelectorAll('.event-type-card');
+
+    cards.forEach(card => {
+      card.className = "event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-surface-container-high text-on-surface shadow-sm active:scale-95 transition-all";
+    });
+
+    const activeEl = document.getElementById('evt-' + type);
+    if (activeEl) {
+      activeEl.className = "event-type-card flex items-center gap-3 p-card-pad-sm rounded-xl bg-primary-container text-on-primary-container shadow-md active:scale-95 transition-all";
+    }
+
+    if (type === 'goal') {
+      goalCard.classList.remove('hidden');
+    } else {
+      goalCard.classList.add('hidden');
+    }
+  }
+
+  function selectQuickTag(tag) {
+    const notify = document.getElementById('sync-notification');
+    notify.querySelector('span:last-child').textContent = tag + ' selecionado';
+    notify.classList.remove('opacity-0');
+    setTimeout(() => {
+      notify.classList.add('opacity-0');
+    }, 2000);
+  }
+
+  function confirmLiveEvent() {
+    const minInput = document.getElementById('event-minute').value || '85';
+    const assistSelect = document.getElementById('select-assist');
+    const feed = document.getElementById('incidents-feed');
+    const syncNotif = document.getElementById('sync-notification');
+
+    let titleText = 'GOL! ' + activePlayer;
+    let detailText = 'Assistência: ' + assistSelect.value + ' • Man United';
+    let icon = '⚽';
+
+    if (activeEventType === 'shot') {
+      titleText = 'Chute a Gol: ' + activePlayer;
+      detailText = 'Finalização perigosa defendida';
+      icon = '🎯';
+    } else if (activeEventType === 'red') {
+      titleText = 'Cartão Vermelho: ' + activePlayer;
+      detailText = 'Expulsão confirmada pelo árbitro';
+      icon = '🟥';
+    } else if (activeEventType === 'sub') {
+      titleText = 'Substituição no ' + (activeTeam === 'home' ? 'Man United' : 'Man City');
+      detailText = 'Entra ' + activePlayer;
+      icon = '🔄';
+    }
+
+    // Dynamic Score increment if goal
+    if (activeEventType === 'goal') {
+      const scoreElem = activeTeam === 'home' ? document.getElementById('score-home') : document.getElementById('score-away');
+      if (scoreElem) {
+        let currentScore = parseInt(scoreElem.textContent, 10);
+        scoreElem.textContent = currentScore + 1;
+      }
+    }
+
+    // Prepend new incident card
+    const newIncident = document.createElement('div');
+    newIncident.className = "incident-item flex items-center justify-between p-card-pad-sm rounded-xl bg-surface-container-high shadow-sm";
+    newIncident.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary-container/20 text-primary-container flex items-center justify-center font-display-score text-[18px]">
+          ${icon}
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-1.5">
+            <span class="font-label-tactical text-label-tactical text-tertiary">${minInput}'</span>
+            <span class="font-label-tactical text-label-tactical text-on-surface">${titleText}</span>
+          </div>
+          <span class="text-body-sm font-body-sm text-on-surface-variant">${detailText}</span>
+        </div>
+      </div>
+      <button type="button" onclick="removeIncident(this, ${activeEventType === 'goal'})" aria-label="Desfazer lance" class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+      </button>
+    `;
+
+    feed.prepend(newIncident);
+
+    // Visual feedback
+    syncNotif.querySelector('span:last-child').textContent = 'Lance salvo e sincronizado!';
+    syncNotif.classList.remove('opacity-0');
+    setTimeout(() => {
+      syncNotif.classList.add('opacity-0');
+    }, 2800);
+  }
+
+  function removeIncident(btn, wasGoal) {
+    const item = btn.closest('.incident-item');
+    if (item) {
+      if (wasGoal) {
+        const homeScore = document.getElementById('score-home');
+        let cur = parseInt(homeScore.textContent, 10);
+        if (cur > 0) homeScore.textContent = cur - 1;
+      }
+      item.remove();
+    }
+  }
+
+  function clearForm() {
+    document.getElementById('event-minute').value = '85';
+    selectEventType('goal');
+    selectTeam('home');
+  }
+</script></main></body></html>
