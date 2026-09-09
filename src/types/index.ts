@@ -125,3 +125,15 @@ export interface MatchHistoryEntry {
   venue: string;
   events: MatchEvent[];
 }
+
+export interface QuickActionItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  badge: string;
+  badgeColorClass: string;
+  iconColorClass: string;
+  path: string;
+}
+

@@ -108,8 +108,8 @@ export const TacticsPage: React.FC = () => {
     e.preventDefault();
     if (!dragData) return;
 
-    const newFormation = formation.own.map((row) =>
-      row.map((player) => ({ ...player }))
+    const newFormation = formation.own.map((row: FormationPlayer[]) =>
+      row.map((player: FormationPlayer) => ({ ...player }))
     );
 
     newFormation[dragData.fromRow][dragData.fromIndex] = newFormation[toRow][toIndex];
@@ -155,7 +155,7 @@ export const TacticsPage: React.FC = () => {
     if (dragData && dragOver) {
       const toRow = dragOver.row;
       const toIndex = dragOver.index;
-      const newFormation = formation.own.map((row) => row.map((p) => ({ ...p })));
+      const newFormation = formation.own.map((row: FormationPlayer[]) => row.map((p: FormationPlayer) => ({ ...p })));
       newFormation[dragData.fromRow][dragData.fromIndex] = newFormation[toRow][toIndex];
       newFormation[toRow][toIndex] = dragData.player;
       const updated = { ...formation, own: newFormation };
@@ -279,7 +279,7 @@ export const TacticsPage: React.FC = () => {
           <div className="flex flex-col gap-2">
             {formation.own.map((row, ri) => (
               <div key={ri} className="flex justify-around px-4">
-                {row.map((player, pi) => (
+                {row.map((player: FormationPlayer, pi: number) => (
                   <div
                     key={pi}
                     data-droppable
