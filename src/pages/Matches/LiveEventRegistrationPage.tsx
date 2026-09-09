@@ -91,9 +91,8 @@ export const LiveEventRegistrationPage: React.FC = () => {
                   setSelectedType(btn.type);
                   setSelectedAssist('');
                 }}
-                className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${
-                  selectedType === btn.type ? btn.bgClass + ' ring-2 ring-[#e63946]' : 'bg-white border-slate-200'
-                }`}
+                className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${selectedType === btn.type ? btn.bgClass + ' ring-2 ring-[#e63946]' : 'bg-white border-slate-200'
+                  }`}
               >
                 <span
                   className={`material-symbols-outlined text-[20px] ${btn.colorClass}`}
@@ -116,11 +115,10 @@ export const LiveEventRegistrationPage: React.FC = () => {
               <button
                 key={team}
                 onClick={() => { setSelectedTeam(team); setSelectedPlayer(''); setSelectedAssist(''); }}
-                className={`p-3 rounded-xl border font-bold text-xs transition-all active:scale-95 ${
-                  selectedTeam === team
-                    ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600'
-                }`}
+                className={`p-3 rounded-xl border font-bold text-xs transition-all active:scale-95 ${selectedTeam === team
+                  ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-600'
+                  }`}
               >
                 {team === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name}
               </button>
@@ -138,7 +136,7 @@ export const LiveEventRegistrationPage: React.FC = () => {
               const currentTeamName = selectedTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name;
               const currentTeam = teams.find(t => t.name === currentTeamName);
               const filteredPlayers = players.filter(p => p.teamId === currentTeam?.id);
-              
+
               if (filteredPlayers.length === 0) {
                 return <p className="text-xs text-slate-500 font-medium text-center py-4">Nenhum jogador cadastrado neste time.</p>;
               }
@@ -147,27 +145,26 @@ export const LiveEventRegistrationPage: React.FC = () => {
                 <button
                   key={player.id}
                   onClick={() => setSelectedPlayer(player.id)}
-                  className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all active:scale-95 ${
-                    selectedPlayer === player.id
-                      ? 'bg-rose-50 border-[#e63946]'
-                      : 'bg-white border-slate-200'
-                  }`}
+                  className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all active:scale-95 ${selectedPlayer === player.id
+                    ? 'bg-rose-50 border-[#e63946]'
+                    : 'bg-white border-slate-200'
+                    }`}
                 >
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                  <img
-                    src={player.photoUrl}
-                    alt={player.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
-                    }}
-                  />
-                </div>
-                <div className="text-left flex-1 min-w-0">
-                  <span className="font-bold text-xs text-slate-900 block truncate">{player.name}</span>
-                  <span className="text-[10px] text-slate-500 font-medium">{player.position}</span>
-                </div>
-                <span className="text-xs font-bold text-[#e63946]">#{player.number}</span>
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                    <img
+                      src={player.photoUrl}
+                      alt={player.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
+                      }}
+                    />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <span className="font-bold text-xs text-slate-900 block truncate">{player.name}</span>
+                    <span className="text-[10px] text-slate-500 font-medium">{player.position}</span>
+                  </div>
+                  <span className="text-xs font-bold text-[#e63946]">#{player.number}</span>
                 </button>
               ));
             })()}
@@ -232,11 +229,10 @@ export const LiveEventRegistrationPage: React.FC = () => {
           <button
             onClick={handleRegister}
             disabled={!isFormValid}
-            className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
-              isFormValid
-                ? 'bg-[#e63946] text-white hover:bg-rose-700 cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-            }`}
+            className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${isFormValid
+              ? 'bg-[#e63946] text-white hover:bg-rose-700 cursor-pointer'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Confirmar e Salvar Lance

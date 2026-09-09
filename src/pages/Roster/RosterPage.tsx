@@ -125,10 +125,27 @@ export const RosterPage: React.FC = () => {
         />
       </div>
 
-      {/* Players Grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-10 text-slate-600 text-sm bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          Nenhum atleta encontrado para &quot;{searchTerm}&quot;.
+        <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+            <span className="material-symbols-outlined text-[24px]">person_off</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">
+              {searchTerm ? `Nenhum atleta encontrado para "${searchTerm}"` : 'Nenhum atleta cadastrado'}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs">
+              {searchTerm ? 'Tente buscar por outro nome ou posição.' : 'Cadastre os jogadores do seu time para acompanhar estatísticas e escalar partidas.'}
+            </p>
+          </div>
+          {!searchTerm && (
+            <button
+              onClick={() => navigate('/elencos/novo')}
+              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+            >
+              + Cadastrar Atleta
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -148,7 +165,7 @@ export const RosterPage: React.FC = () => {
                       alt={player.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
+                        (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
                       }}
                     />
                     <span className="absolute bottom-0 right-0 bg-[#e63946] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
@@ -230,10 +247,10 @@ export const RosterPage: React.FC = () => {
                   onClick={() => editPhotoInputRef.current?.click()}
                 >
                   <img
-                    src={editPhotoPreview || editPhotoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80'}
+                    src={editPhotoPreview || editPhotoUrl || 'https://i.imgur.com/2dRX6Mh.png'}
                     alt="Foto"
                     className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80'; }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png'; }}
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="material-symbols-outlined text-white text-[22px]">add_a_photo</span>

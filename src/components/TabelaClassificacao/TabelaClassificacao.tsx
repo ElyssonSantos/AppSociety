@@ -107,7 +107,7 @@ export const TabelaClassificacao: React.FC = () => {
                             alt={team.name}
                             className="w-full h-full object-cover rounded-full"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
+                              (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
                             }}
                           />
                         </div>
@@ -130,7 +130,7 @@ export const TabelaClassificacao: React.FC = () => {
                           {(team.goalDiff ?? 0) > 0 ? `+${team.goalDiff}` : team.goalDiff ?? 0}
                         </span>
                         <div className="w-12 hidden sm:flex items-center justify-center space-x-0.5">
-                          {(team.form || ['W', 'W', 'L']).map((r, i) => (
+                          {(team.form || []).map((r, i) => (
                             <React.Fragment key={i}>{formIcon(r)}</React.Fragment>
                           ))}
                         </div>

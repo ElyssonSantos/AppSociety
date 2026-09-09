@@ -9,6 +9,8 @@ interface MatchCreationModalProps {
 }
 
 const DURATION_OPTIONS = [
+  { label: '5 min', value: 5 },
+  { label: '10 min', value: 10 },
   { label: '15 min', value: 15 },
   { label: '30 min', value: 30 },
   { label: '45 min', value: 45 },
@@ -22,10 +24,10 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
   onCreateMatch,
 }) => {
   const navigate = useNavigate();
-  const { availableClubNames, createNewMatch } = useApp();
+  const { availableClubNames, createNewMatch, addUpcomingMatch } = useApp();
 
-  const [team1, setTeam1] = useState(availableClubNames[0] || 'Resenha FC');
-  const [team2, setTeam2] = useState(availableClubNames[1] || 'Amigos do Zico');
+  const [team1, setTeam1] = useState(availableClubNames[0] || '');
+  const [team2, setTeam2] = useState(availableClubNames[1] || '');
   const [duration, setDuration] = useState<number>(90);
   const [customDuration, setCustomDuration] = useState<string>('');
 
@@ -57,6 +59,12 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
 
     onClose();
     navigate(`/ao-vivo/${createdId}`);
+  };
+
+  const handleAddToQueue = () => {
+    const finalDuration = duration > 0 ? duration : 90;
+    addUpcomingMatch(team1, team2, finalDuration);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -96,32 +104,45 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
         {/* Content Body */}
         <div className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Status Badge */}
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2 text-xs text-rose-700">
+          <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center gap-2 text-xs text-slate-700">
             <span className="w-2 h-2 rounded-full bg-[#e63946] animate-pulse" />
-            <span className="font-medium">A partida será iniciada imediatamente após a confirmação.</span>
+            <span className="font-medium">Escolha se deseja iniciar o jogo agora ou agendá-lo em Próximos Confrontos.</span>
           </div>
 
-          {/* Teams Selection Dropdowns */}
+          {/* Teams Selection Dropdowns or Text Inputs */}
           <div className="space-y-3">
             <div>
               <label className="block text-[11px] text-slate-600 uppercase font-bold mb-1.5">
                 Time 1 (Mandante)
               </label>
               <div className="relative">
-                <select
-                  value={team1}
-                  onChange={(e) => setTeam1(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946] appearance-none transition-colors"
-                >
-                  {availableClubNames.map((club) => (
-                    <option key={`t1-${club}`} value={club} disabled={club === team2}>
-                      {club}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[20px]">
-                  unfold_more
-                </span>
+                {availableClubNames.length > 0 ? (
+                  <select
+                    value={team1}
+                    onChange={(e) => setTeam1(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946] appearance-none transition-colors"
+                  >
+                    <option value="" disabled>Selecione a equipe...</option>
+                    {availableClubNames.map((club) => (
+                      <option key={`t1-${club}`} value={club} disabled={club === team2}>
+                        {club}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={team1}
+                    onChange={(e) => setTeam1(e.target.value)}
+                    placeholder="Nome do Time 1 (Ex: Time A)"
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946]"
+                  />
+                )}
+                {availableClubNames.length > 0 && (
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[20px]">
+                    unfold_more
+                  </span>
+                )}
               </div>
             </div>
 
@@ -130,20 +151,33 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
                 Time 2 (Visitante)
               </label>
               <div className="relative">
-                <select
-                  value={team2}
-                  onChange={(e) => setTeam2(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946] appearance-none transition-colors"
-                >
-                  {availableClubNames.map((club) => (
-                    <option key={`t2-${club}`} value={club} disabled={club === team1}>
-                      {club}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[20px]">
-                  unfold_more
-                </span>
+                {availableClubNames.length > 0 ? (
+                  <select
+                    value={team2}
+                    onChange={(e) => setTeam2(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946] appearance-none transition-colors"
+                  >
+                    <option value="" disabled>Selecione a equipe...</option>
+                    {availableClubNames.map((club) => (
+                      <option key={`t2-${club}`} value={club} disabled={club === team1}>
+                        {club}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={team2}
+                    onChange={(e) => setTeam2(e.target.value)}
+                    placeholder="Nome do Time 2 (Ex: Time B)"
+                    className="w-full px-3.5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-semibold text-sm focus:outline-none focus:border-[#e63946]"
+                  />
+                )}
+                {availableClubNames.length > 0 && (
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[20px]">
+                    unfold_more
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -159,11 +193,10 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleDurationSelect(opt.value)}
-                  className={`py-2 px-1 rounded-xl text-xs font-bold transition-all ${
-                    duration === opt.value && !customDuration
-                      ? 'bg-[#e63946] text-white shadow-md'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
+                  className={`py-2 px-1 rounded-xl text-xs font-bold transition-all ${duration === opt.value && !customDuration
+                    ? 'bg-[#e63946] text-white shadow-md'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
                 >
                   {opt.label}
                 </button>
@@ -173,7 +206,7 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
             {/* Custom Minutes Input */}
             <div className="pt-2">
               <label className="block text-[10px] text-slate-500 uppercase font-medium mb-1">
-                Ou digite os minutos exatos (ex: 4, 5, 20):
+                Ou digite os minutos exatos como preferir:
               </label>
               <div className="relative">
                 <input
@@ -183,7 +216,7 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
                   value={customDuration}
                   onChange={handleCustomDurationChange}
                   placeholder="Tempo customizado..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-[#e63946]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-[#e63946]"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
                   min
@@ -200,11 +233,18 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
             className="w-full py-3.5 rounded-xl bg-[#e63946] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:bg-rose-700 active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-            Confirmar e Iniciar Partida
+            Iniciar Agora (Ao Vivo)
+          </button>
+          <button
+            onClick={handleAddToQueue}
+            className="w-full py-3 rounded-xl bg-slate-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow hover:bg-slate-900 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-[20px]">schedule</span>
+            Adicionar a Próximos Confrontos
           </button>
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-slate-600 font-medium text-xs hover:text-slate-900 transition-colors"
+            className="w-full py-2 rounded-xl text-slate-500 font-medium text-xs hover:text-slate-900 transition-colors"
           >
             Cancelar
           </button>

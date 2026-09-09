@@ -81,8 +81,20 @@ export const ClubsPage: React.FC = () => {
       {/* Teams Grid */}
       <div className="grid grid-cols-1 gap-4">
         {teams.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center text-slate-600 font-medium shadow-sm">
-            Nenhuma equipe cadastrada ainda. Clique em "+ Nova Equipe" para criar a primeira!
+          <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center shadow-sm flex flex-col items-center justify-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-[#e63946]">
+              <span className="material-symbols-outlined text-[24px]">shield</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Nenhuma equipe cadastrada</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-xs">Cadastre os clubes participantes para organizar confrontos e gerenciar elencos.</p>
+            </div>
+            <button
+              onClick={() => navigate('/clubes/novo')}
+              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+            >
+              + Nova Equipe
+            </button>
           </div>
         ) : (
           teams.map((team) => (

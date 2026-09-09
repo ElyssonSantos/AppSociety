@@ -50,10 +50,10 @@ const PlayerProfilePage: React.FC = () => {
               <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center shadow-lg border-2 border-slate-700">
                 <img 
                   className="w-full h-full object-cover object-top" 
-                  src={player.photoUrl || "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=250&auto=format&fit=crop"} 
+                  src={player.photoUrl || "https://i.imgur.com/2dRX6Mh.png"} 
                   alt={player.name}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
+                    (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
                   }}
                 />
               </div>

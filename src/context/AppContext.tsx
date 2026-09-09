@@ -18,6 +18,8 @@ interface AppContextType {
   updatePlayer: (id: string, updatedData: Partial<Player>) => void;
   deletePlayer: (id: string) => void;
   createNewMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => string;
+  addUpcomingMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => void;
+  startUpcomingMatch: (matchId: string) => string;
   finishLiveMatch: () => void;
   deleteMatchHistoryEntry: (id: string) => void;
   addMatchEvent: (event: {
@@ -33,6 +35,7 @@ interface AppContextType {
   getTeamShield: (teamNameOrId: string) => string;
 }
 
+const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -67,28 +70,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     if (t?.shieldUrl) return t.shieldUrl;
 
-    const nameLower = (teamNameOrId || '').toLowerCase();
-    if (nameLower.includes('man. united') || nameLower.includes('united') || nameLower.includes('resenha')) {
-      return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
-    }
-    if (nameLower.includes('chelsea') || nameLower.includes('zico') || nameLower.includes('amigos')) {
-      return 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80';
-    }
-    if (nameLower.includes('real') || nameLower.includes('vila')) {
-      return 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=120&q=80';
-    }
-    if (nameLower.includes('galácticos') || nameLower.includes('bayern') || nameLower.includes('city')) {
-      return 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=120&q=80';
-    }
-
-    return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
+    return DEFAULT_FALLBACK_IMAGE;
   };
 
   const addTeam = (name: string, shieldUrl?: string): Team => {
     const newTeam: Team = {
       id: `team-${Date.now()}`,
       name,
-      shieldUrl: shieldUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80',
+      shieldUrl: shieldUrl || DEFAULT_FALLBACK_IMAGE,
       players: [],
       points: 0,
       played: 0,
@@ -126,7 +115,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       position: newPlayerData.position || 'Pivô',
       photoUrl:
         newPlayerData.photoUrl ||
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+        DEFAULT_FALLBACK_IMAGE,
       rating: newPlayerData.rating || 8.0,
       goals: 0,
       assists: 0,
@@ -201,6 +190,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closeCreationModal();
     return newMatchId;
   };
+
+  const addUpcomingMatch = (homeTeam: string, awayTeam: string, durationMinutes: number) => {
+    const newMatch: UpcomingMatch = {
+      id: `upcoming-${Date.now()}`,
+      homeTeam,
+      awayTeam,
+      dateLabel: 'HOJE',
+      time: `${durationMinutes} MIN`,
+      venue: 'Quadra Society 01',
+      competition: 'Jogo Casual',
+    };
+    setUpcomingMatches((prev) => [...prev, newMatch]);
+    closeCreationModal();
+  };
+
+  const startUpcomingMatch = (matchId: string): string => {
+    const matchToStart = upcomingMatches.find((m) => m.id === matchId);
+    if (!matchToStart) return '';
+
+    const newMatchId = `match-${Date.now()}`;
+    const durationMins = parseInt(matchToStart.time) || 15;
+
+    const newMatch: LiveMatchFull = {
+      id: newMatchId,
+      homeTeam: { name: matchToStart.homeTeam, score: 0, icon: 'shield' },
+      awayTeam: { name: matchToStart.awayTeam, score: 0, icon: 'shield' },
+      status: 'live',
+      clock: `${durationMins}:00`,
+      venue: matchToStart.venue,
+      competition: matchToStart.competition,
+      events: [],
+    };
+
+    setLiveMatch(newMatch);
+    setUpcomingMatches((prev) => prev.filter((m) => m.id !== matchId));
+    return newMatchId;
+  };
+
 
   const finishLiveMatch = () => {
     if (liveMatch.status === 'finished') return;
@@ -397,6 +424,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatePlayer,
         deletePlayer,
         createNewMatch,
+        addUpcomingMatch,
+        startUpcomingMatch,
         finishLiveMatch,
         deleteMatchHistoryEntry,
         addMatchEvent,

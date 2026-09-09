@@ -54,7 +54,7 @@ const HistoryCard: React.FC<{
           <div className="flex-1 flex flex-col items-center gap-1.5">
             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm bg-slate-100">
               <img src={homeShield} alt={entry.homeTeam} className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80'; }} />
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png'; }} />
             </div>
             <span className={`text-xs font-bold text-center leading-tight ${winner === 'home' ? 'text-slate-900' : 'text-slate-500'}`}>
               {entry.homeTeam}
@@ -80,7 +80,7 @@ const HistoryCard: React.FC<{
           <div className="flex-1 flex flex-col items-center gap-1.5">
             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm bg-slate-100">
               <img src={awayShield} alt={entry.awayTeam} className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80'; }} />
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png'; }} />
             </div>
             <span className={`text-xs font-bold text-center leading-tight ${winner === 'away' ? 'text-slate-900' : 'text-slate-500'}`}>
               {entry.awayTeam}

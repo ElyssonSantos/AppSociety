@@ -3,22 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { MatchCreationModal } from '../../components/modals/MatchCreationModal';
 
-// Static fallback for when there's no match history yet
-const STATIC_RESULTS: ('W' | 'D' | 'L')[] = ['W', 'L', 'D', 'W', 'L', 'W', 'W', 'D', 'L', 'W'];
-const STATIC_BAR_HEIGHTS = [7, 4, 5, 8, 3, 9, 6, 2, 5, 8];
-
-const BAR_HEIGHTS = STATIC_BAR_HEIGHTS;
-
 const QUICK_ACTIONS = [
-  { id: 'partidas',  label: 'Partidas',         icon: 'sports_soccer', path: '/partidas' },
-  { id: 'elenco',    label: 'Cadastrar Elenco', icon: 'group_add',     path: '/elencos' },
-  { id: 'tatico',    label: 'Quadro Tático',    icon: 'tactic',        path: '/tatico' },
-  { id: 'stats',     label: 'Classificação',    icon: 'leaderboard',   path: '/estatisticas' },
-  { id: 'clubes',    label: 'Clubes',           icon: 'shield',        path: '/clubes' },
-  { id: 'placar',    label: 'Placar Ao Vivo',   icon: 'flash_on',      path: '/partidas' },
+  { id: 'partidas', label: 'Partidas', icon: 'sports_soccer', path: '/partidas' },
+  { id: 'elenco', label: 'Cadastrar Elenco', icon: 'group_add', path: '/elencos' },
+  { id: 'tatico', label: 'Quadro Tático', icon: 'tactic', path: '/tatico' },
+  { id: 'stats', label: 'Classificação', icon: 'leaderboard', path: '/estatisticas' },
+  { id: 'clubes', label: 'Clubes', icon: 'shield', path: '/clubes' },
+  { id: 'placar', label: 'Placar Ao Vivo', icon: 'flash_on', path: '/partidas' },
 ];
-
-// BAR_HEIGHTS is now derived dynamically
 
 function resultColor(r: 'W' | 'D' | 'L') {
   if (r === 'W') return '#22c55e';
@@ -28,7 +20,17 @@ function resultColor(r: 'W' | 'D' | 'L') {
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { players, isCreationModalOpen, closeCreationModal, openCreationModal, getTeamShield, matchHistory } = useApp();
+  const {
+    players,
+    isCreationModalOpen,
+    closeCreationModal,
+    getTeamShield,
+    matchHistory,
+    upcomingMatches,
+    liveMatch,
+  } = useApp();
+
+  const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
 
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -43,8 +45,7 @@ export const HomePage: React.FC = () => {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  // Build last-10 from real matchHistory (reference team = first team in history)
-  // We use the last 10 finished matches, showing opponent shield + result color
+  // Build last-10 from real matchHistory
   const last10 = matchHistory.slice(0, 10);
 
   // Compute results from history perspective of home team
@@ -54,18 +55,11 @@ export const HomePage: React.FC = () => {
     score: `${m.homeScore}-${m.awayScore}`,
   }));
 
-  // Use static fallback if no real history
-  const displayResults = histResults.length > 0 ? histResults : STATIC_RESULTS.map((r, i) => ({
-    result: r,
-    opponent: ['Amigos do Zico', 'Resenha FC', 'Galácticos FC', 'Vila Real Society', 'Amigos do Zico', 'Resenha FC', 'Galácticos FC', 'Vila Real Society', 'Amigos do Zico', 'Resenha FC'][i],
-    score: '',
-  }));
+  const wins = histResults.filter(r => r.result === 'W').length;
+  const draws = histResults.filter(r => r.result === 'D').length;
+  const losses = histResults.filter(r => r.result === 'L').length;
 
-  const wins   = displayResults.filter(r => r.result === 'W').length;
-  const draws  = displayResults.filter(r => r.result === 'D').length;
-  const losses = displayResults.filter(r => r.result === 'L').length;
-
-  const dynamicBarHeights = displayResults.map((r) => r.result === 'W' ? 9 : r.result === 'D' ? 5 : 3);
+  const dynamicBarHeights = histResults.map((r) => r.result === 'W' ? 9 : r.result === 'D' ? 5 : 3);
 
   const sortedPlayers = [...players].sort((a, b) => (b.goals || 0) - (a.goals || 0));
 
@@ -93,8 +87,23 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  const homeShield = getTeamShield('Resenha FC');
-  const awayShield = getTeamShield('Amigos do Zico');
+  // Determine active display match for top card on Home
+  const isMatchLive = liveMatch.status === 'live';
+  const nextMatchItem = upcomingMatches.length > 0 ? upcomingMatches[0] : null;
+
+  const homeTeamName = isMatchLive ? liveMatch.homeTeam.name : (nextMatchItem ? nextMatchItem.homeTeam : '');
+  const awayTeamName = isMatchLive ? liveMatch.awayTeam.name : (nextMatchItem ? nextMatchItem.awayTeam : '');
+
+  const homeShield = homeTeamName ? getTeamShield(homeTeamName) : DEFAULT_FALLBACK;
+  const awayShield = awayTeamName ? getTeamShield(awayTeamName) : DEFAULT_FALLBACK;
+
+  const handleNextMatchCardClick = () => {
+    if (isMatchLive) {
+      navigate(`/ao-vivo/${liveMatch.id}`);
+    } else {
+      navigate('/partidas');
+    }
+  };
 
   return (
     <div className="flex flex-col w-full min-h-full bg-slate-50 pb-20">
@@ -129,84 +138,119 @@ export const HomePage: React.FC = () => {
         </div>
       </header>
 
-      {/* ── PRÓXIMA PARTIDA — Com Escudos Reais em <img> ── */}
+      {/* ── PRÓXIMA PARTIDA OU EMPTY STATE ── */}
       <div className="px-4 pt-4 pb-3">
-        <div
-          className="relative overflow-hidden rounded-2xl p-5 cursor-pointer active:scale-[0.99] transition-transform shadow-md"
-          style={{ background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)' }}
-          onClick={openCreationModal}
-        >
-          {/* Tag de Liga */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-white/90 text-[14px]">emoji_events</span>
-              <span className="text-[11px] font-bold text-white/90 uppercase tracking-widest">Próxima Partida</span>
-            </div>
-            <span className="text-[11px] font-semibold text-white/80 uppercase tracking-wide">Society 2026</span>
-          </div>
-
-          {/* Times com Escudos Reais */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
-                <img
-                  src={homeShield}
-                  alt="Resenha FC"
-                  className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
-                  }}
-                />
+        {isMatchLive || nextMatchItem ? (
+          <div
+            className="relative overflow-hidden rounded-2xl p-5 cursor-pointer active:scale-[0.99] transition-transform shadow-md"
+            style={{ background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)' }}
+            onClick={handleNextMatchCardClick}
+          >
+            {/* Tag de Liga */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-white/90 text-[14px]">
+                  {isMatchLive ? 'sensors' : 'emoji_events'}
+                </span>
+                <span className="text-[11px] font-bold text-white/90 uppercase tracking-widest">
+                  {isMatchLive ? 'Partida Em Andamento' : 'Próxima Partida'}
+                </span>
               </div>
-              <span className="text-[13px] font-bold text-white text-center leading-tight">Resenha FC</span>
+              <span className="text-[11px] font-semibold text-white/80 uppercase tracking-wide">
+                {isMatchLive ? liveMatch.competition : nextMatchItem?.competition}
+              </span>
             </div>
 
-            <div className="flex flex-col items-center">
-              <span className="text-[28px] font-extrabold text-white tracking-tight leading-none">05:00</span>
-              <span className="text-[10px] text-white/70 mt-0.5 font-medium uppercase">28 ABR, 2025</span>
-            </div>
-
-            <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
-                <img
-                  src={awayShield}
-                  alt="Amigos do Zico"
-                  className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80';
-                  }}
-                />
+            {/* Times */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
+                  <img
+                    src={homeShield}
+                    alt={homeTeamName}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                    }}
+                  />
+                </div>
+                <span className="text-[13px] font-bold text-white text-center leading-tight truncate max-w-[100px]">{homeTeamName}</span>
               </div>
-              <span className="text-[13px] font-bold text-white text-center leading-tight">Amigos do Zico</span>
-            </div>
-          </div>
 
-          {/* Rodapé Card */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
-            <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-white/70 text-[13px]">person</span>
-              <span className="text-[11px] text-white/80">Árbitro Oficial</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-white/70 text-[13px]">calendar_month</span>
-              <span className="text-[11px] text-white/80">Rodada 01</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-white/70 text-[13px]">stadium</span>
-              <span className="text-[11px] text-white/80">Quadra Society 01</span>
-            </div>
-          </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[26px] font-extrabold text-white tracking-tight leading-none">
+                  {isMatchLive ? `${liveMatch.homeTeam.score} - ${liveMatch.awayTeam.score}` : nextMatchItem?.time}
+                </span>
+                <span className="text-[10px] text-white/70 mt-0.5 font-medium uppercase">
+                  {isMatchLive ? liveMatch.clock : nextMatchItem?.dateLabel}
+                </span>
+              </div>
 
-          <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
-        </div>
+              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
+                  <img
+                    src={awayShield}
+                    alt={awayTeamName}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                    }}
+                  />
+                </div>
+                <span className="text-[13px] font-bold text-white text-center leading-tight truncate max-w-[100px]">{awayTeamName}</span>
+              </div>
+            </div>
+
+            {/* Rodapé Card */}
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-white/70 text-[13px]">person</span>
+                <span className="text-[11px] text-white/80">Árbitro Oficial</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-white/70 text-[13px]">calendar_month</span>
+                <span className="text-[11px] text-white/80">Rodada 01</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-white/70 text-[13px]">stadium</span>
+                <span className="text-[11px] text-white/80">
+                  {isMatchLive ? liveMatch.venue : nextMatchItem?.venue}
+                </span>
+              </div>
+            </div>
+
+            <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
+          </div>
+        ) : (
+          <div
+            onClick={() => navigate('/partidas')}
+            className="relative overflow-hidden rounded-2xl p-6 cursor-pointer active:scale-[0.99] transition-transform shadow-sm bg-white border border-slate-200 flex flex-col items-center justify-center text-center space-y-3"
+          >
+            <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-[#e63946]">
+              <span className="material-symbols-outlined text-[24px]">sports_soccer</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Nenhuma partida agendada</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-xs">Crie ou agende partidas para acompanhar o placar e as estatísticas ao vivo.</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate('/partidas'); }}
+              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+            >
+              + Criar Partida
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ── ÚLTIMOS 10 JOGOS ── */}
+      {/* ── ÚLTIMOS JOGOS (COM EMPTY STATE) ── */}
       <div className="mx-4 mb-3 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-[#e63946]">bar_chart</span>
-            <h2 className="text-[14px] font-bold text-slate-900">Últimos {displayResults.length} jogos</h2>
+            <h2 className="text-[14px] font-bold text-slate-900">
+              {histResults.length > 0 ? `Últimos ${histResults.length} jogos` : 'Últimos Jogos'}
+            </h2>
           </div>
           <button
             onClick={() => navigate('/historico')}
@@ -217,60 +261,72 @@ export const HomePage: React.FC = () => {
           </button>
         </div>
 
-        {/* Barras dinâmicas */}
-        <div className="flex items-end gap-1.5 h-14 mb-3">
-          {displayResults.map((r, i) => (
-            <div key={i} className="flex-1 flex items-end">
-              <div
-                className="w-full rounded-sm"
-                style={{ height: `${dynamicBarHeights[i] * 5}px`, background: resultColor(r.result), opacity: 0.9 }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Escudos dos adversários com indicador colorido */}
-        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar">
-          {displayResults.map((r, i) => {
-            const shieldSrc = getTeamShield(r.opponent);
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-0.5 shrink-0">
-                <div className="relative w-7 h-7 rounded-full overflow-hidden border border-slate-200 bg-slate-50">
-                  <img
-                    src={shieldSrc}
-                    alt={r.opponent}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        {histResults.length > 0 ? (
+          <>
+            {/* Barras dinâmicas */}
+            <div className="flex items-end gap-1.5 h-14 mb-3">
+              {histResults.map((r, i) => (
+                <div key={i} className="flex-1 flex items-end">
+                  <div
+                    className="w-full rounded-sm"
+                    style={{ height: `${dynamicBarHeights[i] * 5}px`, background: resultColor(r.result), opacity: 0.9 }}
                   />
                 </div>
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: resultColor(r.result) }}
-                  title={r.result === 'W' ? 'Vitória' : r.result === 'D' ? 'Empate' : 'Derrota'}
-                />
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
 
-        {/* Legenda */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
-            <span className="text-[11px] font-medium text-slate-600">Vitórias: {wins}</span>
+            {/* Escudos dos adversários */}
+            <div className="flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+              {histResults.map((r, i) => {
+                const shieldSrc = getTeamShield(r.opponent);
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5 shrink-0">
+                    <div className="relative w-7 h-7 rounded-full overflow-hidden border border-slate-200 bg-slate-50">
+                      <img
+                        src={shieldSrc}
+                        alt={r.opponent}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_FALLBACK; }}
+                      />
+                    </div>
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: resultColor(r.result) }}
+                      title={r.result === 'W' ? 'Vitória' : r.result === 'D' ? 'Empate' : 'Derrota'}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legenda */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
+                <span className="text-[11px] font-medium text-slate-600">Vitórias: {wins}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#9ca3af]" />
+                <span className="text-[11px] font-medium text-slate-600">Empates: {draws}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
+                <span className="text-[11px] font-medium text-slate-600">Derrotas: {losses}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="py-6 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <span className="material-symbols-outlined text-[20px]">history</span>
+            </div>
+            <p className="text-xs font-bold text-slate-800">Sem partidas encerradas</p>
+            <p className="text-[11px] text-slate-500 max-w-xs">O histórico de confrontos será exibido aqui conforme as partidas forem concluídas.</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#9ca3af]" />
-            <span className="text-[11px] font-medium text-slate-600">Empates: {draws}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
-            <span className="text-[11px] font-medium text-slate-600">Derrotas: {losses}</span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* ── MELHORES JOGADORES ── */}
+      {/* ── MELHORES JOGADORES (COM EMPTY STATE) ── */}
       <div className="mx-4 mb-3 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -286,39 +342,55 @@ export const HomePage: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
-          {sortedPlayers.map((player, index) => {
-            const goals = player.goals || 0;
-            const perf = getPerformanceColors(goals, index, sortedPlayers.length);
+        {sortedPlayers.length > 0 ? (
+          <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
+            {sortedPlayers.map((player, index) => {
+              const goals = player.goals || 0;
+              const perf = getPerformanceColors(goals, index, sortedPlayers.length);
 
-            return (
-              <div
-                key={player.id}
-                onClick={() => navigate(`/jogador/${player.id}`)}
-                className="flex flex-col items-center gap-1 shrink-0 cursor-pointer active:scale-95 transition-transform"
-              >
+              return (
                 <div
-                  className={`w-14 h-14 rounded-full p-0.5 border-2 ${perf.borderColor} bg-slate-100 flex items-center justify-center relative shadow-sm`}
+                  key={player.id}
+                  onClick={() => navigate(`/jogador/${player.id}`)}
+                  className="flex flex-col items-center gap-1 shrink-0 cursor-pointer active:scale-95 transition-transform"
                 >
-                  <img
-                    src={player.photoUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80'}
-                    alt={player.name}
-                    className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
-                    }}
-                  />
+                  <div
+                    className={`w-14 h-14 rounded-full p-0.5 border-2 ${perf.borderColor} bg-slate-100 flex items-center justify-center relative shadow-sm`}
+                  >
+                    <img
+                      src={player.photoUrl || DEFAULT_FALLBACK}
+                      alt={player.name}
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                      }}
+                    />
+                  </div>
+                  <span className="text-[12px] font-bold text-slate-900 text-center leading-tight truncate max-w-[76px]">
+                    {player.name}
+                  </span>
+                  <span className={`text-[11px] font-bold ${perf.textColor}`}>
+                    {goals} {goals === 1 ? 'Gol' : 'Gols'}
+                  </span>
                 </div>
-                <span className="text-[12px] font-bold text-slate-900 text-center leading-tight truncate max-w-[76px]">
-                  {player.name}
-                </span>
-                <span className={`text-[11px] font-bold ${perf.textColor}`}>
-                  {goals} {goals === 1 ? 'Gol' : 'Gols'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-6 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <span className="material-symbols-outlined text-[20px]">groups</span>
+            </div>
+            <p className="text-xs font-bold text-slate-800">Nenhum atleta no elenco</p>
+            <p className="text-[11px] text-slate-500 max-w-xs">Cadastre atletas no elenco para visualizar a artilharia.</p>
+            <button
+              onClick={() => navigate('/elencos')}
+              className="mt-1 px-3 py-1.5 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-900"
+            >
+              + Cadastrar Atleta
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── ACESSO RÁPIDO ── */}

@@ -64,6 +64,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
     return minutes * 60;
   });
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [addedExtraMinutes, setAddedExtraMinutes] = useState<number>(0);
 
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away'>('home');
   const [activeAction, setActiveAction] = useState<QuickActionType | null>(null);
@@ -73,12 +74,18 @@ export const LiveMatchDetailsPage: React.FC = () => {
   const [selectedPlayerInId, setSelectedPlayerInId] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+  const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
   const homeShield = getTeamShield(liveMatch.homeTeam.name);
   const awayShield = getTeamShield(liveMatch.awayTeam.name);
 
   const currentTeamName = selectedTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name;
   const currentTeam = teams.find(t => t.name === currentTeamName);
   const filteredPlayers = players.filter(p => p.teamId === currentTeam?.id);
+
+  const handleAddExtraTime = (mins: number) => {
+    setSecondsLeft((prev) => prev + mins * 60);
+    setAddedExtraMinutes((prev) => prev + mins);
+  };
 
   // 1. Cronômetro Regressivo (MM:SS)
   useEffect(() => {
@@ -214,7 +221,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                   alt={liveMatch.homeTeam.name}
                   className="w-full h-full object-cover rounded-full"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
+                    (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
                   }}
                 />
               </div>
@@ -225,13 +232,18 @@ export const LiveMatchDetailsPage: React.FC = () => {
             {/* Placar / Cronômetro Central */}
             <div className="flex flex-col items-center gap-1 shrink-0">
               <span className="text-2xl font-light text-slate-400">VS</span>
-              <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700">
+              <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 flex items-center gap-1">
                 <span className="text-lg font-extrabold text-amber-400 tracking-wider">
                   {liveMatch.status === 'finished' ? '00:00' : formatTime(secondsLeft)}
                 </span>
+                {addedExtraMinutes > 0 && (
+                  <span className="text-xs font-bold text-amber-300 bg-amber-500/30 px-1 rounded">
+                    +{addedExtraMinutes}'
+                  </span>
+                )}
               </div>
               <span className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">
-                {liveMatch.status === 'finished' ? 'Fim de Jogo' : 'Regressivo'}
+                {liveMatch.status === 'finished' ? 'Fim de Jogo' : addedExtraMinutes > 0 ? `Com +${addedExtraMinutes}' acréscimos` : 'Regressivo'}
               </span>
             </div>
 
@@ -243,7 +255,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                   alt={liveMatch.awayTeam.name}
                   className="w-full h-full object-cover rounded-full"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80';
+                    (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
                   }}
                 />
               </div>
@@ -254,24 +266,43 @@ export const LiveMatchDetailsPage: React.FC = () => {
 
           {/* Timer Controls & Finish Match Action */}
           {liveMatch.status === 'live' && (
-            <div className="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between">
-              <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  {isTimerRunning ? 'pause' : 'play_arrow'}
-                </span>
-                <span>{isTimerRunning ? 'Pausar Tempo' : 'Iniciar Tempo'}</span>
-              </button>
+            <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700"
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {isTimerRunning ? 'pause' : 'play_arrow'}
+                  </span>
+                  <span>{isTimerRunning ? 'Pausar Tempo' : 'Iniciar Tempo'}</span>
+                </button>
 
-              <button
-                onClick={handleManualFinish}
-                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow"
-              >
-                <span className="material-symbols-outlined text-[16px]">flag</span>
-                <span>Encerrar Partida</span>
-              </button>
+                <button
+                  onClick={handleManualFinish}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow"
+                >
+                  <span className="material-symbols-outlined text-[16px]">flag</span>
+                  <span>Encerrar Partida</span>
+                </button>
+              </div>
+
+              {/* Botões de Acréscimos */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <span className="text-[11px] font-bold text-slate-300">Adicionar Acréscimo:</span>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 5].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => handleAddExtraTime(m)}
+                      className="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-all active:scale-95"
+                    >
+                      +{m}m
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -290,22 +321,20 @@ export const LiveMatchDetailsPage: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => { setSelectedTeam('home'); setSelectedScorerId(''); setSelectedAssistId(''); }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${
-                  selectedTeam === 'home'
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${selectedTeam === 'home'
                     ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <img src={homeShield} alt="" className="w-5 h-5 rounded-full object-cover" />
                 <span>{liveMatch.homeTeam.name}</span>
               </button>
               <button
                 onClick={() => { setSelectedTeam('away'); setSelectedScorerId(''); setSelectedAssistId(''); }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${
-                  selectedTeam === 'away'
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${selectedTeam === 'away'
                     ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <img src={awayShield} alt="" className="w-5 h-5 rounded-full object-cover" />
                 <span>{liveMatch.awayTeam.name}</span>
@@ -327,9 +356,8 @@ export const LiveMatchDetailsPage: React.FC = () => {
                       setSelectedAssistId('');
                       setSelectedPlayerInId('');
                     }}
-                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${
-                      isSelected ? `${cfg.bgColor} ring-2 ring-[#e63946]` : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${isSelected ? `${cfg.bgColor} ring-2 ring-[#e63946]` : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      }`}
                   >
                     <span className={`material-symbols-outlined text-[20px] ${cfg.color}`}>
                       {cfg.icon}
@@ -453,11 +481,10 @@ export const LiveMatchDetailsPage: React.FC = () => {
                 <button
                   onClick={handleConfirmAction}
                   disabled={activeAction === 'sub' ? (!selectedScorerId || !selectedPlayerInId) : !selectedScorerId}
-                  className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
-                    (activeAction === 'sub' ? (selectedScorerId && selectedPlayerInId) : selectedScorerId)
+                  className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${(activeAction === 'sub' ? (selectedScorerId && selectedPlayerInId) : selectedScorerId)
                       ? 'bg-[#e63946] text-white hover:bg-rose-700 cursor-pointer'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-[16px]">add_circle</span>
                   Confirmar Registro de Lance

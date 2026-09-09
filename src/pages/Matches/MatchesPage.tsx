@@ -13,7 +13,10 @@ export const MatchesPage: React.FC = () => {
     openCreationModal,
     closeCreationModal,
     getTeamShield,
+    startUpcomingMatch,
   } = useApp();
+
+  const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -44,6 +47,14 @@ export const MatchesPage: React.FC = () => {
   const handleDragEnd = () => {
     setDraggedIndex(null);
     setDragOverIndex(null);
+  };
+
+  const handleStartMatch = (e: React.MouseEvent, matchId: string) => {
+    e.stopPropagation();
+    const newId = startUpcomingMatch(matchId);
+    if (newId) {
+      navigate(`/ao-vivo/${newId}`);
+    }
   };
 
   const homeShield = getTeamShield(liveMatch.homeTeam.name);
@@ -98,11 +109,11 @@ export const MatchesPage: React.FC = () => {
                 alt={liveMatch.homeTeam.name}
                 className="w-full h-full object-cover rounded-full"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
+                  (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
                 }}
               />
             </div>
-            <span className="text-[13px] font-bold text-white leading-tight truncate w-full">{liveMatch.homeTeam.name}</span>
+            <span className="text-[13px] font-bold text-white leading-tight truncate w-full">{liveMatch.homeTeam.name || 'Sem jogo ao vivo'}</span>
             <span className="text-2xl font-extrabold text-white leading-none">{liveMatch.homeTeam.score}</span>
           </div>
 
@@ -120,11 +131,11 @@ export const MatchesPage: React.FC = () => {
                 alt={liveMatch.awayTeam.name}
                 className="w-full h-full object-cover rounded-full"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80';
+                  (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
                 }}
               />
             </div>
-            <span className="text-[13px] font-bold text-white leading-tight truncate w-full">{liveMatch.awayTeam.name}</span>
+            <span className="text-[13px] font-bold text-white leading-tight truncate w-full">{liveMatch.awayTeam.name || 'Aguardando'}</span>
             <span className="text-2xl font-extrabold text-white leading-none">{liveMatch.awayTeam.score}</span>
           </div>
         </div>
@@ -150,79 +161,95 @@ export const MatchesPage: React.FC = () => {
           <span className="text-xs text-slate-500 font-medium">{upcomingMatches.length} jogos</span>
         </div>
 
-        <div className="space-y-2.5">
-          {upcomingMatches.map((m, index) => {
-            const hShield = getTeamShield(m.homeTeam);
-            const aShield = getTeamShield(m.awayTeam);
+        {upcomingMatches.length > 0 ? (
+          <div className="space-y-2.5">
+            {upcomingMatches.map((m, index) => {
+              const hShield = getTeamShield(m.homeTeam);
+              const aShield = getTeamShield(m.awayTeam);
 
-            return (
-              <div
-                key={m.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDrop={(e) => handleDrop(e, index)}
-                onDragEnd={handleDragEnd}
-                className={`
-                  p-4 rounded-2xl bg-white border flex items-center justify-between transition-all shadow-sm
-                  ${dragOverIndex === index ? 'border-[#e63946] bg-rose-50/50 scale-[1.01]' : 'border-slate-200 hover:border-slate-300'}
-                  ${draggedIndex === index ? 'opacity-40 scale-[0.98]' : ''}
-                  text-left w-full cursor-grab active:cursor-grabbing
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="material-symbols-outlined text-[20px] text-slate-400">
-                      drag_indicator
-                    </span>
-                    {index === 0 && (
-                      <span className="px-1.5 py-0.5 rounded bg-rose-50 text-[#e63946] text-[9px] font-bold uppercase border border-rose-100">
-                        PRÓXIMO
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Times com Escudos Reais */}
+              return (
+                <div
+                  key={m.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`
+                    p-4 rounded-2xl bg-white border flex items-center justify-between transition-all shadow-sm
+                    ${dragOverIndex === index ? 'border-[#e63946] bg-rose-50/50 scale-[1.01]' : 'border-slate-200 hover:border-slate-300'}
+                    ${draggedIndex === index ? 'opacity-40 scale-[0.98]' : ''}
+                    text-left w-full cursor-grab active:cursor-grabbing
+                  `}
+                >
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={hShield}
-                        alt={m.homeTeam}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=120&q=80';
-                        }}
-                      />
-                      <span className="text-xs font-bold text-slate-900">{m.homeTeam}</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="material-symbols-outlined text-[20px] text-slate-400">
+                        drag_indicator
+                      </span>
+                      {index === 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-rose-50 text-[#e63946] text-[9px] font-bold uppercase border border-rose-100">
+                          PRÓXIMO
+                        </span>
+                      )}
                     </div>
 
-                    <span className="text-xs font-bold text-slate-400">vs</span>
+                    {/* Times com Escudos Reais */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={hShield}
+                          alt={m.homeTeam}
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                          }}
+                        />
+                        <span className="text-xs font-bold text-slate-900">{m.homeTeam}</span>
+                      </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={aShield}
-                        alt={m.awayTeam}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=120&q=80';
-                        }}
-                      />
-                      <span className="text-xs font-bold text-slate-900">{m.awayTeam}</span>
+                      <span className="text-xs font-bold text-slate-400">vs</span>
+
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={aShield}
+                          alt={m.awayTeam}
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                          }}
+                        />
+                        <span className="text-xs font-bold text-slate-900">{m.awayTeam}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-right flex items-center gap-2">
-                  <div>
-                    <span className="text-xs text-slate-600 font-medium block">{m.dateLabel}</span>
-                    <span className="text-xs font-bold text-[#e63946]">{m.time}</span>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <span className="text-xs text-slate-600 font-medium block">{m.dateLabel}</span>
+                      <span className="text-xs font-bold text-[#e63946]">{m.time}</span>
+                    </div>
+                    <button
+                      onClick={(e) => handleStartMatch(e, m.id)}
+                      title="Iniciar este jogo agora"
+                      className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#e63946] transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                    </button>
                   </div>
-                  <span className="material-symbols-outlined text-[18px] text-slate-400">chevron_right</span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center flex flex-col items-center justify-center space-y-2 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <span className="material-symbols-outlined text-[20px]">event_note</span>
+            </div>
+            <p className="text-xs font-bold text-slate-800">Nenhum confronto na fila</p>
+            <p className="text-[11px] text-slate-500 max-w-xs">Clique no botão "+ Nova Partida" para agendar jogos nos próximos confrontos.</p>
+          </div>
+        )}
       </div>
 
       {/* Match Creation Modal */}
