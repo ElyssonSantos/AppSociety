@@ -101,8 +101,6 @@ export const LiveMatchDetailsPage: React.FC = () => {
   }, [isTimerRunning, secondsLeft, liveMatch.status]);
 
   // 2. Condições de Fim de Jogo Automático:
-  // - Cronômetro zerou (secondsLeft <= 0)
-  // - Um dos times atingiu a marca de exatos 2 gols (Regra Society casual)
   useEffect(() => {
     if (liveMatch.status !== 'live') return;
 
@@ -126,7 +124,6 @@ export const LiveMatchDetailsPage: React.FC = () => {
     if (activeAction === 'sub' && (!selectedScorerId || !selectedPlayerInId)) return;
     if (activeAction !== 'sub' && !selectedScorerId) return;
 
-    // Calcular o minuto atual com base no tempo configurado e restante
     const initialSeconds = (parseInt(liveMatch.clock) || 5) * 60;
     const currentMinuteLabel = `${Math.floor((initialSeconds - secondsLeft) / 60) + 1}'`;
 
@@ -178,13 +175,13 @@ export const LiveMatchDetailsPage: React.FC = () => {
           </button>
 
           {liveMatch.status === 'live' ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-100 text-[#e63946] text-xs font-bold uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#e63946] animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e63946] text-white text-xs font-bold uppercase shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               Ao Vivo • Society Casual
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold uppercase">
-              <span className="material-symbols-outlined text-[16px] text-slate-500">flag</span>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-900 text-white text-xs font-bold uppercase shadow-sm">
+              <span className="material-symbols-outlined text-[16px] text-amber-300">flag</span>
               Partida Encerrada
             </span>
           )}
@@ -192,119 +189,130 @@ export const LiveMatchDetailsPage: React.FC = () => {
           <button
             onClick={() => navigate('/estatisticas')}
             title="Ver Classificação"
-            className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[#e63946] hover:bg-slate-100 transition-transform active:scale-90 shadow-sm"
+            className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-900 hover:bg-slate-100 transition-transform active:scale-90 shadow-sm"
           >
             <span className="material-symbols-outlined text-[20px]">leaderboard</span>
           </button>
         </div>
 
-        {/* Placar Hero Header — Estética Próxima Partida com Escudos Reais */}
-        <div
-          className="relative overflow-hidden rounded-2xl p-5 shadow-md border border-slate-200"
-          style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-rose-400 text-[14px]">emoji_events</span>
-              <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">{liveMatch.competition}</span>
-            </div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{liveMatch.venue}</span>
-          </div>
+        {/* Placar Hero Header — Banner com Imagem do Campo Verde Iluminado */}
+        <div className="relative overflow-hidden rounded-2xl p-5 shadow-xl border border-slate-700/50 text-white">
+          {/* Campo Verde Iluminado Background Image */}
+          <img
+            src="/images/field_green.jpg"
+            alt="Campo Iluminado"
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+          {/* Dark Semi-transparent Overlay */}
+          <div className="absolute inset-0 bg-black/60 z-0" />
 
-          {/* Times com Escudos Reais */}
-          <div className="flex items-center justify-between gap-4 my-2">
-            {/* Time 1 */}
-            <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-800 border-2 border-slate-600 shadow-md">
-                <img
-                  src={homeShield}
-                  alt={liveMatch.homeTeam.name}
-                  className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
-                  }}
-                />
+          {/* Content (z-10 & text-white) */}
+          <div className="relative z-10 text-white space-y-4">
+            <div className="flex items-center justify-between border-b border-white/20 pb-3">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-amber-300 text-[16px]">sports_soccer</span>
+                <span className="text-[11px] font-extrabold text-white uppercase tracking-widest">{liveMatch.competition}</span>
               </div>
-              <span className="text-sm font-bold text-white leading-tight truncate w-full">{liveMatch.homeTeam.name}</span>
-              <span className="text-3xl font-extrabold text-[#e63946] leading-none">{liveMatch.homeTeam.score}</span>
-            </div>
-
-            {/* Placar / Cronômetro Central */}
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <span className="text-2xl font-light text-slate-400">VS</span>
-              <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 flex items-center gap-1">
-                <span className="text-lg font-extrabold text-amber-400 tracking-wider">
-                  {liveMatch.status === 'finished' ? '00:00' : formatTime(secondsLeft)}
-                </span>
-                {addedExtraMinutes > 0 && (
-                  <span className="text-xs font-bold text-amber-300 bg-amber-500/30 px-1 rounded">
-                    +{addedExtraMinutes}'
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">
-                {liveMatch.status === 'finished' ? 'Fim de Jogo' : addedExtraMinutes > 0 ? `Com +${addedExtraMinutes}' acréscimos` : 'Regressivo'}
+              <span className="text-[11px] font-bold text-white/90 uppercase tracking-wide bg-white/10 px-2.5 py-0.5 rounded-full border border-white/20">
+                {liveMatch.venue}
               </span>
             </div>
 
-            {/* Time 2 */}
-            <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-800 border-2 border-slate-600 shadow-md">
-                <img
-                  src={awayShield}
-                  alt={liveMatch.awayTeam.name}
-                  className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
-                  }}
-                />
+            {/* Times com Escudos Reais */}
+            <div className="flex items-center justify-between gap-4 my-2">
+              {/* Time 1 */}
+              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 border-2 border-white/40 shadow-md">
+                  <img
+                    src={homeShield}
+                    alt={liveMatch.homeTeam.name}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                    }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-white leading-tight truncate w-full">{liveMatch.homeTeam.name || 'Casa'}</span>
+                <span className="text-3xl font-black text-white leading-none">{liveMatch.homeTeam.score}</span>
               </div>
-              <span className="text-sm font-bold text-white leading-tight truncate w-full">{liveMatch.awayTeam.name}</span>
-              <span className="text-3xl font-extrabold text-white leading-none">{liveMatch.awayTeam.score}</span>
-            </div>
-          </div>
 
-          {/* Timer Controls & Finish Match Action */}
-          {liveMatch.status === 'live' && (
-            <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 hover:bg-slate-700"
-                >
-                  <span className="material-symbols-outlined text-[16px]">
-                    {isTimerRunning ? 'pause' : 'play_arrow'}
+              {/* Placar / Cronômetro Central */}
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <span className="text-2xl font-black text-white tracking-widest">VS</span>
+                <div className="px-3 py-1 rounded-full bg-black/40 border border-white/20 flex items-center gap-1">
+                  <span className="text-lg font-extrabold text-amber-300 tracking-wider">
+                    {liveMatch.status === 'finished' ? '00:00' : formatTime(secondsLeft)}
                   </span>
-                  <span>{isTimerRunning ? 'Pausar Tempo' : 'Iniciar Tempo'}</span>
-                </button>
-
-                <button
-                  onClick={handleManualFinish}
-                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow"
-                >
-                  <span className="material-symbols-outlined text-[16px]">flag</span>
-                  <span>Encerrar Partida</span>
-                </button>
+                  {addedExtraMinutes > 0 && (
+                    <span className="text-xs font-bold text-amber-300 bg-amber-500/30 px-1 rounded">
+                      +{addedExtraMinutes}'
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-white/80 font-bold uppercase mt-0.5 tracking-wider">
+                  {liveMatch.status === 'finished' ? 'Fim de Jogo' : addedExtraMinutes > 0 ? `Com +${addedExtraMinutes}' acréscimos` : 'Regressivo'}
+                </span>
               </div>
 
-              {/* Botões de Acréscimos */}
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
-                <span className="text-[11px] font-bold text-slate-300">Adicionar Acréscimo:</span>
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 5].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => handleAddExtraTime(m)}
-                      className="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-all active:scale-95"
-                    >
-                      +{m}m
-                    </button>
-                  ))}
+              {/* Time 2 */}
+              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 border-2 border-white/40 shadow-md">
+                  <img
+                    src={awayShield}
+                    alt={liveMatch.awayTeam.name}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                    }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-white leading-tight truncate w-full">{liveMatch.awayTeam.name || 'Visitante'}</span>
+                <span className="text-3xl font-black text-white leading-none">{liveMatch.awayTeam.score}</span>
+              </div>
+            </div>
+
+            {/* Timer Controls & Finish Match Action */}
+            {liveMatch.status === 'live' && (
+              <div className="mt-4 pt-3 border-t border-white/20 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setIsTimerRunning(!isTimerRunning)}
+                    className="px-3 py-1.5 rounded-xl bg-white/20 border border-white/30 text-xs font-bold text-white flex items-center gap-1.5 hover:bg-white/30 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {isTimerRunning ? 'pause' : 'play_arrow'}
+                    </span>
+                    <span>{isTimerRunning ? 'Pausar Tempo' : 'Iniciar Tempo'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleManualFinish}
+                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1 shadow"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">flag</span>
+                    <span>Encerrar Partida</span>
+                  </button>
+                </div>
+
+                {/* Botões de Acréscimos */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+                  <span className="text-[11px] font-bold text-white/90">Adicionar Acréscimo:</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 5].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => handleAddExtraTime(m)}
+                        className="px-2 py-1 rounded-lg bg-amber-500/30 border border-amber-400/40 text-amber-300 text-xs font-bold hover:bg-amber-500/40 transition-all active:scale-95"
+                      >
+                        +{m}m
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Quick Actions Panel */}
@@ -312,7 +320,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3 border border-slate-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#e63946] text-[20px]">bolt</span>
+                <span className="material-symbols-outlined text-slate-900 text-[20px]">bolt</span>
                 <h2 className="text-sm font-bold text-slate-900">Painel de Lances Ao Vivo</h2>
               </div>
             </div>
@@ -322,7 +330,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
               <button
                 onClick={() => { setSelectedTeam('home'); setSelectedScorerId(''); setSelectedAssistId(''); }}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${selectedTeam === 'home'
-                    ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
               >
@@ -332,7 +340,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
               <button
                 onClick={() => { setSelectedTeam('away'); setSelectedScorerId(''); setSelectedAssistId(''); }}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${selectedTeam === 'away'
-                    ? 'bg-rose-50 border-[#e63946] text-[#e63946] shadow-sm'
+                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
               >
@@ -356,7 +364,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                       setSelectedAssistId('');
                       setSelectedPlayerInId('');
                     }}
-                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${isSelected ? `${cfg.bgColor} ring-2 ring-[#e63946]` : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all active:scale-95 ${isSelected ? `${cfg.bgColor} ring-2 ring-slate-900` : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                       }`}
                   >
                     <span className={`material-symbols-outlined text-[20px] ${cfg.color}`}>
@@ -380,7 +388,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
             {activeAction && !successMessage && (
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <span className="text-xs text-[#e63946] uppercase font-bold">
+                  <span className="text-xs text-slate-900 uppercase font-extrabold">
                     Registrar {quickActionConfig[activeAction].label} — {selectedTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name}
                   </span>
                   <button
@@ -401,7 +409,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                       <select
                         value={selectedScorerId}
                         onChange={(e) => setSelectedScorerId(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-[#e63946]"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-slate-900"
                       >
                         <option value="">-- Selecione o jogador --</option>
                         {filteredPlayers.map((p) => (
@@ -420,7 +428,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                         <select
                           value={selectedAssistId}
                           onChange={(e) => setSelectedAssistId(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-[#e63946]"
+                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-slate-900"
                         >
                           <option value="">-- Sem assistência --</option>
                           {filteredPlayers
@@ -446,7 +454,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                       <select
                         value={selectedScorerId}
                         onChange={(e) => setSelectedScorerId(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-[#e63946]"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-slate-900"
                       >
                         <option value="">-- Selecione quem sai --</option>
                         {filteredPlayers.map((p) => (
@@ -463,7 +471,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                       <select
                         value={selectedPlayerInId}
                         onChange={(e) => setSelectedPlayerInId(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-[#e63946]"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none focus:border-slate-900"
                       >
                         <option value="">-- Selecione quem entra --</option>
                         {filteredPlayers
@@ -482,7 +490,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
                   onClick={handleConfirmAction}
                   disabled={activeAction === 'sub' ? (!selectedScorerId || !selectedPlayerInId) : !selectedScorerId}
                   className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${(activeAction === 'sub' ? (selectedScorerId && selectedPlayerInId) : selectedScorerId)
-                      ? 'bg-[#e63946] text-white hover:bg-rose-700 cursor-pointer'
+                      ? 'bg-slate-900 text-white hover:bg-black cursor-pointer'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                 >
@@ -497,7 +505,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
         {/* Timeline Events Feed */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
           <div className="flex items-center gap-2 mb-3">
-            <span className="material-symbols-outlined text-[#e63946] text-[20px]">timeline</span>
+            <span className="material-symbols-outlined text-slate-900 text-[20px]">timeline</span>
             <h2 className="text-sm font-bold text-slate-900">Linha do Tempo em Tempo Real</h2>
           </div>
           <div>

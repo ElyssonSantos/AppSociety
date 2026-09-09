@@ -47,104 +47,20 @@ interface AppContextType {
 
 const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png';
 
-const INITIAL_TEAMS: Team[] = [
-  {
-    id: 'team-1',
-    name: 'PSG Society',
-    shieldUrl: DEFAULT_FALLBACK_IMAGE,
-    players: ['p-1', 'p-2'],
-    points: 6,
-    played: 2,
-    wins: 2,
-    draws: 0,
-    losses: 0,
-    goalsFor: 8,
-    goalsAgainst: 2,
-    goalDiff: 6,
-    form: ['W', 'W'],
-  },
-  {
-    id: 'team-2',
-    name: 'Real Quebrada',
-    shieldUrl: DEFAULT_FALLBACK_IMAGE,
-    players: ['p-3'],
-    points: 3,
-    played: 2,
-    wins: 1,
-    draws: 0,
-    losses: 1,
-    goalsFor: 4,
-    goalsAgainst: 4,
-    goalDiff: 0,
-    form: ['L', 'W'],
-  },
-];
+const INITIAL_TEAMS: Team[] = [];
 
-const INITIAL_PLAYERS: Player[] = [
-  {
-    id: 'p-1',
-    name: 'Gabriel Jesus',
-    number: 9,
-    position: 'Pivô',
-    photoUrl: DEFAULT_FALLBACK_IMAGE,
-    rating: 8.5,
-    goals: 3,
-    assists: 1,
-    form: 8.5,
-    matches: 2,
-    minutesPlayed: 40,
-    teamId: 'team-1',
-  },
-  {
-    id: 'p-2',
-    name: 'Neymar Jr',
-    number: 10,
-    position: 'Ala Esquerda',
-    photoUrl: DEFAULT_FALLBACK_IMAGE,
-    rating: 9.0,
-    goals: 5,
-    assists: 3,
-    form: 9.0,
-    matches: 2,
-    minutesPlayed: 40,
-    teamId: 'team-1',
-  },
-  {
-    id: 'p-3',
-    name: 'Casemiro',
-    number: 5,
-    position: 'Fixo',
-    photoUrl: DEFAULT_FALLBACK_IMAGE,
-    rating: 8.0,
-    goals: 1,
-    assists: 0,
-    form: 8.0,
-    matches: 2,
-    minutesPlayed: 40,
-    teamId: 'team-2',
-  },
-];
+const INITIAL_PLAYERS: Player[] = [];
 
-const INITIAL_UPCOMING: UpcomingMatch[] = [
-  {
-    id: 'upcoming-1',
-    homeTeam: 'PSG Society',
-    awayTeam: 'Real Quebrada',
-    dateLabel: 'HOJE',
-    time: '20 MIN',
-    venue: 'Quadra Society 01',
-    competition: 'Liga Quebrada',
-  },
-];
+const INITIAL_UPCOMING: UpcomingMatch[] = [];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [liveMatch, setLiveMatch] = useState<LiveMatchFull>({
     id: 'live-current',
-    homeTeam: { name: 'PSG Society', score: 0, icon: 'shield' },
-    awayTeam: { name: 'Real Quebrada', score: 0, icon: 'shield' },
-    competition: 'Liga Quebrada',
+    homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
+    awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
+    competition: 'Jogo Casual',
     venue: 'Quadra Society 01',
     status: 'finished',
     clock: '0:00',
@@ -247,9 +163,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // Create initial live match doc
           const defaultLive: LiveMatchFull = {
             id: 'live-current',
-            homeTeam: { name: 'PSG Society', score: 0, icon: 'shield' },
-            awayTeam: { name: 'Real Quebrada', score: 0, icon: 'shield' },
-            competition: 'Liga Quebrada',
+            homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
+            awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
+            competition: 'Jogo Casual',
             venue: 'Quadra Society 01',
             status: 'finished',
             clock: '0:00',
