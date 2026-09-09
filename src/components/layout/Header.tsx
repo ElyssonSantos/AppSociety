@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { SoccerBallLogo } from '../common/SoccerBallLogo';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -13,17 +14,13 @@ export const Header: React.FC<HeaderProps> = () => {
       <div className="max-w-lg mx-auto md:max-w-xl h-16 px-gutter-mobile flex items-center justify-between">
         {/* Brand */}
         <Link to="/inicio" className="flex items-center gap-space-sm focus:outline-none">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-[0_2px_8px_rgba(230,57,70,0.25)]">
-            <span className="material-symbols-outlined text-white text-[20px]">
-              sports_soccer
-            </span>
-          </div>
+          <SoccerBallLogo size={36} />
           <div className="flex flex-col">
-            <span className="font-headline-md text-headline-md text-on-surface tracking-tight leading-none font-semibold">
-              FutStat
+            <span className="font-headline-md text-headline-md text-on-surface tracking-tight leading-none font-extrabold">
+              MopaFut
             </span>
-            <span className="font-label-badge text-[10px] text-on-surface-variant uppercase tracking-widest leading-tight mt-0.5">
-              Pro Tactical
+            <span className="font-label-badge text-[10px] text-on-surface-variant uppercase tracking-widest leading-tight mt-0.5 font-semibold">
+              Society dos quebrados
             </span>
           </div>
         </Link>
@@ -50,8 +47,8 @@ export const Header: React.FC<HeaderProps> = () => {
                 <div className="p-2 rounded-lg bg-surface-container-high flex items-start gap-2">
                   <span className="w-2 h-2 mt-1.5 rounded-full bg-secondary shrink-0"></span>
                   <div className="text-left text-body-sm">
-                    <p className="font-semibold text-on-surface">Gol no clássico!</p>
-                    <p className="text-on-surface-variant text-[11px]">Rashford 79' ampliou o placar para 3x1.</p>
+                    <p className="font-semibold text-on-surface">Gol na partida!</p>
+                    <p className="text-on-surface-variant text-[11px]">Novo lance registrado no placar ao vivo.</p>
                   </div>
                 </div>
               </div>
@@ -64,7 +61,7 @@ export const Header: React.FC<HeaderProps> = () => {
             </div>
           )}
 
-          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer">
+          <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">person</span>
           </div>
         </div>

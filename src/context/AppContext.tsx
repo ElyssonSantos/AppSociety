@@ -1,4 +1,14 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { LiveMatchFull, MatchEvent, MatchHistoryEntry, Player, Team, UpcomingMatch } from '../types';
 
 interface AppContextType {
@@ -11,17 +21,17 @@ interface AppContextType {
   isCreationModalOpen: boolean;
   openCreationModal: () => void;
   closeCreationModal: () => void;
-  addTeam: (name: string, shieldUrl?: string) => Team;
-  updateTeam: (id: string, updatedData: Partial<Team>) => void;
-  deleteTeam: (id: string) => void;
-  addPlayer: (newPlayer: Partial<Player>) => Player;
-  updatePlayer: (id: string, updatedData: Partial<Player>) => void;
-  deletePlayer: (id: string) => void;
-  createNewMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => string;
-  addUpcomingMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => void;
-  startUpcomingMatch: (matchId: string) => string;
-  finishLiveMatch: () => void;
-  deleteMatchHistoryEntry: (id: string) => void;
+  addTeam: (name: string, shieldUrl?: string) => Promise<Team>;
+  updateTeam: (id: string, updatedData: Partial<Team>) => Promise<void>;
+  deleteTeam: (id: string) => Promise<void>;
+  addPlayer: (newPlayer: Partial<Player>) => Promise<Player>;
+  updatePlayer: (id: string, updatedData: Partial<Player>) => Promise<void>;
+  deletePlayer: (id: string) => Promise<void>;
+  createNewMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => Promise<string>;
+  addUpcomingMatch: (homeTeam: string, awayTeam: string, durationMinutes: number) => Promise<void>;
+  startUpcomingMatch: (matchId: string) => Promise<string>;
+  finishLiveMatch: () => Promise<void>;
+  deleteMatchHistoryEntry: (id: string) => Promise<void>;
   addMatchEvent: (event: {
     type: 'goal' | 'yellow_card' | 'red_card' | 'sub' | 'shot' | 'foul';
     team: 'home' | 'away';
@@ -29,23 +39,113 @@ interface AppContextType {
     assistPlayerId?: string;
     minute: string;
     description?: string;
-  }) => void;
-  setMatchClockMinutes: (minutes: number) => void;
-  setUpcomingMatchesList: (matches: UpcomingMatch[]) => void;
+  }) => Promise<void>;
+  setMatchClockMinutes: (minutes: number) => Promise<void>;
+  setUpcomingMatchesList: (matches: UpcomingMatch[]) => Promise<void>;
   getTeamShield: (teamNameOrId: string) => string;
 }
 
 const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png';
 
+const INITIAL_TEAMS: Team[] = [
+  {
+    id: 'team-1',
+    name: 'PSG Society',
+    shieldUrl: DEFAULT_FALLBACK_IMAGE,
+    players: ['p-1', 'p-2'],
+    points: 6,
+    played: 2,
+    wins: 2,
+    draws: 0,
+    losses: 0,
+    goalsFor: 8,
+    goalsAgainst: 2,
+    goalDiff: 6,
+    form: ['W', 'W'],
+  },
+  {
+    id: 'team-2',
+    name: 'Real Quebrada',
+    shieldUrl: DEFAULT_FALLBACK_IMAGE,
+    players: ['p-3'],
+    points: 3,
+    played: 2,
+    wins: 1,
+    draws: 0,
+    losses: 1,
+    goalsFor: 4,
+    goalsAgainst: 4,
+    goalDiff: 0,
+    form: ['L', 'W'],
+  },
+];
+
+const INITIAL_PLAYERS: Player[] = [
+  {
+    id: 'p-1',
+    name: 'Gabriel Jesus',
+    number: 9,
+    position: 'Pivô',
+    photoUrl: DEFAULT_FALLBACK_IMAGE,
+    rating: 8.5,
+    goals: 3,
+    assists: 1,
+    form: 8.5,
+    matches: 2,
+    minutesPlayed: 40,
+    teamId: 'team-1',
+  },
+  {
+    id: 'p-2',
+    name: 'Neymar Jr',
+    number: 10,
+    position: 'Ala Esquerda',
+    photoUrl: DEFAULT_FALLBACK_IMAGE,
+    rating: 9.0,
+    goals: 5,
+    assists: 3,
+    form: 9.0,
+    matches: 2,
+    minutesPlayed: 40,
+    teamId: 'team-1',
+  },
+  {
+    id: 'p-3',
+    name: 'Casemiro',
+    number: 5,
+    position: 'Fixo',
+    photoUrl: DEFAULT_FALLBACK_IMAGE,
+    rating: 8.0,
+    goals: 1,
+    assists: 0,
+    form: 8.0,
+    matches: 2,
+    minutesPlayed: 40,
+    teamId: 'team-2',
+  },
+];
+
+const INITIAL_UPCOMING: UpcomingMatch[] = [
+  {
+    id: 'upcoming-1',
+    homeTeam: 'PSG Society',
+    awayTeam: 'Real Quebrada',
+    dateLabel: 'HOJE',
+    time: '20 MIN',
+    venue: 'Quadra Society 01',
+    competition: 'Liga Quebrada',
+  },
+];
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [liveMatch, setLiveMatch] = useState<LiveMatchFull>({
-    id: '',
-    homeTeam: { name: '', score: 0, icon: 'shield' },
-    awayTeam: { name: '', score: 0, icon: 'shield' },
-    competition: '',
-    venue: '',
+    id: 'live-current',
+    homeTeam: { name: 'PSG Society', score: 0, icon: 'shield' },
+    awayTeam: { name: 'Real Quebrada', score: 0, icon: 'shield' },
+    competition: 'Liga Quebrada',
+    venue: 'Quadra Society 01',
     status: 'finished',
     clock: '0:00',
     events: [],
@@ -56,6 +156,121 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [teams, setTeams] = useState<Team[]>([]);
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
   const [matchHistory, setMatchHistory] = useState<MatchHistoryEntry[]>([]);
+
+  // ──────────────────────────────────────────────────────────
+  // Real-time Firestore Listeners (onSnapshot) & Seed Logic
+  // ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    // 1. Teams listener
+    const unsubscribeTeams = onSnapshot(
+      collection(db, 'teams'),
+      async (snapshot) => {
+        if (snapshot.empty) {
+          // Seed initial teams if Firestore collection is empty
+          for (const team of INITIAL_TEAMS) {
+            await setDoc(doc(db, 'teams', team.id), team);
+          }
+        } else {
+          const loadedTeams: Team[] = snapshot.docs.map((d) => d.data() as Team);
+          setTeams(loadedTeams);
+        }
+      },
+      (error) => {
+        console.warn('Firestore teams snapshot error:', error);
+      }
+    );
+
+    // 2. Players listener
+    const unsubscribePlayers = onSnapshot(
+      collection(db, 'players'),
+      async (snapshot) => {
+        if (snapshot.empty) {
+          // Seed initial players if empty
+          for (const player of INITIAL_PLAYERS) {
+            await setDoc(doc(db, 'players', player.id), player);
+          }
+        } else {
+          const loadedPlayers: Player[] = snapshot.docs.map((d) => d.data() as Player);
+          setPlayers(loadedPlayers);
+        }
+      },
+      (error) => {
+        console.warn('Firestore players snapshot error:', error);
+      }
+    );
+
+    // 3. Upcoming matches listener
+    const unsubscribeUpcoming = onSnapshot(
+      collection(db, 'upcomingMatches'),
+      async (snapshot) => {
+        if (snapshot.empty) {
+          for (const match of INITIAL_UPCOMING) {
+            await setDoc(doc(db, 'upcomingMatches', match.id), match);
+          }
+        } else {
+          const loadedUpcoming: UpcomingMatch[] = snapshot.docs.map(
+            (d) => d.data() as UpcomingMatch
+          );
+          setUpcomingMatches(loadedUpcoming);
+        }
+      },
+      (error) => {
+        console.warn('Firestore upcomingMatches snapshot error:', error);
+      }
+    );
+
+    // 4. Match history listener
+    const unsubscribeHistory = onSnapshot(
+      collection(db, 'matchHistory'),
+      (snapshot) => {
+        const loadedHistory: MatchHistoryEntry[] = snapshot.docs.map(
+          (d) => d.data() as MatchHistoryEntry
+        );
+        // Sort newest first
+        loadedHistory.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setMatchHistory(loadedHistory);
+      },
+      (error) => {
+        console.warn('Firestore matchHistory snapshot error:', error);
+      }
+    );
+
+    // 5. Live Match listener
+    const unsubscribeLiveMatch = onSnapshot(
+      doc(db, 'liveMatch', 'current'),
+      (snapshotDoc) => {
+        if (snapshotDoc.exists()) {
+          setLiveMatch(snapshotDoc.data() as LiveMatchFull);
+        } else {
+          // Create initial live match doc
+          const defaultLive: LiveMatchFull = {
+            id: 'live-current',
+            homeTeam: { name: 'PSG Society', score: 0, icon: 'shield' },
+            awayTeam: { name: 'Real Quebrada', score: 0, icon: 'shield' },
+            competition: 'Liga Quebrada',
+            venue: 'Quadra Society 01',
+            status: 'finished',
+            clock: '0:00',
+            events: [],
+          };
+          setDoc(doc(db, 'liveMatch', 'current'), defaultLive);
+        }
+      },
+      (error) => {
+        console.warn('Firestore liveMatch snapshot error:', error);
+      }
+    );
+
+    return () => {
+      unsubscribeTeams();
+      unsubscribePlayers();
+      unsubscribeUpcoming();
+      unsubscribeHistory();
+      unsubscribeLiveMatch();
+    };
+  }, []);
 
   const availableClubNames = teams.map((t) => t.name);
 
@@ -69,11 +284,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         team.id === teamNameOrId
     );
     if (t?.shieldUrl) return t.shieldUrl;
-
     return DEFAULT_FALLBACK_IMAGE;
   };
 
-  const addTeam = (name: string, shieldUrl?: string): Team => {
+  // ──────────────────────────────────────────────────────────
+  // Firestore Persistence CRUD Actions (Async / Await Guaranteed)
+  // ──────────────────────────────────────────────────────────
+
+  const addTeam = async (name: string, shieldUrl?: string): Promise<Team> => {
     const newTeam: Team = {
       id: `team-${Date.now()}`,
       name,
@@ -91,31 +309,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setTeams((prev) => [...prev, newTeam]);
+    await setDoc(doc(db, 'teams', newTeam.id), newTeam);
     return newTeam;
   };
 
-  const updateTeam = (id: string, updatedData: Partial<Team>) => {
+  const updateTeam = async (id: string, updatedData: Partial<Team>): Promise<void> => {
     setTeams((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updatedData } : t))
     );
+    await updateDoc(doc(db, 'teams', id), updatedData);
   };
 
-  const deleteTeam = (id: string) => {
+  const deleteTeam = async (id: string): Promise<void> => {
     setTeams((prev) => prev.filter((t) => t.id !== id));
     setPlayers((prev) =>
       prev.map((p) => (p.teamId === id ? { ...p, teamId: undefined } : p))
     );
+    await deleteDoc(doc(db, 'teams', id));
   };
 
-  const addPlayer = (newPlayerData: Partial<Player>): Player => {
+  const addPlayer = async (newPlayerData: Partial<Player>): Promise<Player> => {
     const created: Player = {
       id: `p-${Date.now()}`,
       name: newPlayerData.name || 'Novo Atleta',
       number: newPlayerData.number || 10,
       position: newPlayerData.position || 'Pivô',
-      photoUrl:
-        newPlayerData.photoUrl ||
-        DEFAULT_FALLBACK_IMAGE,
+      photoUrl: newPlayerData.photoUrl || DEFAULT_FALLBACK_IMAGE,
       rating: newPlayerData.rating || 8.0,
       goals: 0,
       assists: 0,
@@ -135,45 +354,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : t
         )
       );
+
+      const targetTeam = teams.find((t) => t.id === newPlayerData.teamId);
+      if (targetTeam) {
+        const updatedPlayers = Array.from(new Set([...targetTeam.players, created.id]));
+        await updateDoc(doc(db, 'teams', targetTeam.id), { players: updatedPlayers });
+      }
     }
 
+    await setDoc(doc(db, 'players', created.id), created);
     return created;
   };
 
-  const updatePlayer = (id: string, updatedData: Partial<Player>) => {
+  const updatePlayer = async (id: string, updatedData: Partial<Player>): Promise<void> => {
     setPlayers((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
     );
+    await updateDoc(doc(db, 'players', id), updatedData);
 
     if (updatedData.teamId !== undefined) {
-      setTeams((prevTeams) =>
-        prevTeams.map((t) => {
-          const hasPlayer = t.players.includes(id);
-          const shouldHavePlayer = t.id === updatedData.teamId;
+      const newTeamId = updatedData.teamId;
+      for (const t of teams) {
+        const hasPlayer = t.players.includes(id);
+        const shouldHavePlayer = t.id === newTeamId;
 
-          if (hasPlayer && !shouldHavePlayer) {
-            return { ...t, players: t.players.filter((pid) => pid !== id) };
-          }
-          if (!hasPlayer && shouldHavePlayer) {
-            return { ...t, players: [...t.players, id] };
-          }
-          return t;
-        })
-      );
+        if (hasPlayer && !shouldHavePlayer) {
+          const filtered = t.players.filter((pid) => pid !== id);
+          await updateDoc(doc(db, 'teams', t.id), { players: filtered });
+        } else if (!hasPlayer && shouldHavePlayer) {
+          const added = [...t.players, id];
+          await updateDoc(doc(db, 'teams', t.id), { players: added });
+        }
+      }
     }
   };
 
-  const deletePlayer = (id: string) => {
+  const deletePlayer = async (id: string): Promise<void> => {
     setPlayers((prev) => prev.filter((p) => p.id !== id));
-    setTeams((prevTeams) =>
-      prevTeams.map((t) => ({
-        ...t,
-        players: t.players.filter((pid) => pid !== id),
-      }))
-    );
+    await deleteDoc(doc(db, 'players', id));
   };
 
-  const createNewMatch = (homeTeam: string, awayTeam: string, durationMinutes: number): string => {
+  const createNewMatch = async (
+    homeTeam: string,
+    awayTeam: string,
+    durationMinutes: number
+  ): Promise<string> => {
     const newMatchId = `match-${Date.now()}`;
     const newMatch: LiveMatchFull = {
       id: newMatchId,
@@ -188,10 +413,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLiveMatch(newMatch);
     closeCreationModal();
+
+    await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
     return newMatchId;
   };
 
-  const addUpcomingMatch = (homeTeam: string, awayTeam: string, durationMinutes: number) => {
+  const addUpcomingMatch = async (
+    homeTeam: string,
+    awayTeam: string,
+    durationMinutes: number
+  ): Promise<void> => {
     const newMatch: UpcomingMatch = {
       id: `upcoming-${Date.now()}`,
       homeTeam,
@@ -201,11 +432,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       venue: 'Quadra Society 01',
       competition: 'Jogo Casual',
     };
+
     setUpcomingMatches((prev) => [...prev, newMatch]);
     closeCreationModal();
+
+    await setDoc(doc(db, 'upcomingMatches', newMatch.id), newMatch);
   };
 
-  const startUpcomingMatch = (matchId: string): string => {
+  const startUpcomingMatch = async (matchId: string): Promise<string> => {
     const matchToStart = upcomingMatches.find((m) => m.id === matchId);
     if (!matchToStart) return '';
 
@@ -225,11 +459,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLiveMatch(newMatch);
     setUpcomingMatches((prev) => prev.filter((m) => m.id !== matchId));
+
+    await deleteDoc(doc(db, 'upcomingMatches', matchId));
+    await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+
     return newMatchId;
   };
 
-
-  const finishLiveMatch = () => {
+  const finishLiveMatch = async (): Promise<void> => {
     if (liveMatch.status === 'finished') return;
 
     const homeName = liveMatch.homeTeam.name;
@@ -237,11 +474,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const homeScore = liveMatch.homeTeam.score;
     const awayScore = liveMatch.awayTeam.score;
 
-    setLiveMatch((prev) => ({
-      ...prev,
+    const updatedLiveMatch: LiveMatchFull = {
+      ...liveMatch,
       status: 'finished',
       clock: 'FIM DE JOGO',
-    }));
+    };
+
+    setLiveMatch(updatedLiveMatch);
+    await setDoc(doc(db, 'liveMatch', 'current'), updatedLiveMatch);
 
     // Persist to match history
     const historyEntry: MatchHistoryEntry = {
@@ -255,63 +495,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       venue: liveMatch.venue,
       events: liveMatch.events,
     };
+
     setMatchHistory((prev) => [historyEntry, ...prev]);
+    await setDoc(doc(db, 'matchHistory', historyEntry.id), historyEntry);
 
-    setTeams((prevTeams) =>
-      prevTeams.map((team) => {
-        const isHome = team.name.toLowerCase() === homeName.toLowerCase();
-        const isAway = team.name.toLowerCase() === awayName.toLowerCase();
+    // Update Team Stats
+    for (const team of teams) {
+      const isHome = team.name.toLowerCase() === homeName.toLowerCase();
+      const isAway = team.name.toLowerCase() === awayName.toLowerCase();
 
-        if (!isHome && !isAway) return team;
+      if (!isHome && !isAway) continue;
 
-        const gf = isHome ? homeScore : awayScore;
-        const gc = isHome ? awayScore : homeScore;
-        const diff = gf - gc;
+      const gf = isHome ? homeScore : awayScore;
+      const gc = isHome ? awayScore : homeScore;
+      const diff = gf - gc;
 
-        let ptsAdd = 0;
-        let winAdd = 0;
-        let drawAdd = 0;
-        let lossAdd = 0;
-        let formResult: 'W' | 'D' | 'L' = 'D';
+      let ptsAdd = 0;
+      let winAdd = 0;
+      let drawAdd = 0;
+      let lossAdd = 0;
+      let formResult: 'W' | 'D' | 'L' = 'D';
 
-        if (gf > gc) {
-          ptsAdd = 3;
-          winAdd = 1;
-          formResult = 'W';
-        } else if (gf < gc) {
-          ptsAdd = 0;
-          lossAdd = 1;
-          formResult = 'L';
-        } else {
-          ptsAdd = 1;
-          drawAdd = 1;
-          formResult = 'D';
-        }
+      if (gf > gc) {
+        ptsAdd = 3;
+        winAdd = 1;
+        formResult = 'W';
+      } else if (gf < gc) {
+        ptsAdd = 0;
+        lossAdd = 1;
+        formResult = 'L';
+      } else {
+        ptsAdd = 1;
+        drawAdd = 1;
+        formResult = 'D';
+      }
 
-        const currentForm = team.form || [];
-        const updatedForm = [formResult, ...currentForm.slice(0, 4)];
+      const currentForm = team.form || [];
+      const updatedForm = [formResult, ...currentForm.slice(0, 4)];
 
-        return {
-          ...team,
-          played: (team.played || 0) + 1,
-          points: (team.points || 0) + ptsAdd,
-          wins: (team.wins || 0) + winAdd,
-          draws: (team.draws || 0) + drawAdd,
-          losses: (team.losses || 0) + lossAdd,
-          goalsFor: (team.goalsFor || 0) + gf,
-          goalsAgainst: (team.goalsAgainst || 0) + gc,
-          goalDiff: (team.goalDiff || 0) + diff,
-          form: updatedForm,
-        };
-      })
-    );
+      const updatedTeamData: Partial<Team> = {
+        played: (team.played || 0) + 1,
+        points: (team.points || 0) + ptsAdd,
+        wins: (team.wins || 0) + winAdd,
+        draws: (team.draws || 0) + drawAdd,
+        losses: (team.losses || 0) + lossAdd,
+        goalsFor: (team.goalsFor || 0) + gf,
+        goalsAgainst: (team.goalsAgainst || 0) + gc,
+        goalDiff: (team.goalDiff || 0) + diff,
+        form: updatedForm,
+      };
+
+      await updateDoc(doc(db, 'teams', team.id), updatedTeamData);
+    }
   };
 
-  const deleteMatchHistoryEntry = (id: string) => {
+  const deleteMatchHistoryEntry = async (id: string): Promise<void> => {
     setMatchHistory((prev) => prev.filter((m) => m.id !== id));
+    await deleteDoc(doc(db, 'matchHistory', id));
   };
 
-  const addMatchEvent = ({
+  const addMatchEvent = async ({
     type,
     team,
     playerId,
@@ -325,9 +568,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     assistPlayerId?: string;
     minute: string;
     description?: string;
-  }) => {
+  }): Promise<void> => {
     const scorer = players.find((p) => p.id === playerId || p.name === playerId);
-    const assistPlayer = assistPlayerId ? players.find((p) => p.id === assistPlayerId || p.name === assistPlayerId) : undefined;
+    const assistPlayer = assistPlayerId
+      ? players.find((p) => p.id === assistPlayerId || p.name === assistPlayerId)
+      : undefined;
 
     const playerLabel = scorer ? scorer.name : playerId;
     const assistLabel = assistPlayer ? assistPlayer.name : assistPlayerId;
@@ -359,50 +604,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: eventDesc,
     };
 
-    setLiveMatch((prev) => {
-      const updatedHomeScore = team === 'home' && type === 'goal' ? prev.homeTeam.score + 1 : prev.homeTeam.score;
-      const updatedAwayScore = team === 'away' && type === 'goal' ? prev.awayTeam.score + 1 : prev.awayTeam.score;
+    const updatedHomeScore =
+      team === 'home' && type === 'goal' ? liveMatch.homeTeam.score + 1 : liveMatch.homeTeam.score;
+    const updatedAwayScore =
+      team === 'away' && type === 'goal' ? liveMatch.awayTeam.score + 1 : liveMatch.awayTeam.score;
 
-      return {
-        ...prev,
-        homeTeam: { ...prev.homeTeam, score: updatedHomeScore },
-        awayTeam: { ...prev.awayTeam, score: updatedAwayScore },
-        events: [newEvent, ...prev.events],
-      };
-    });
+    const updatedMatch: LiveMatchFull = {
+      ...liveMatch,
+      homeTeam: { ...liveMatch.homeTeam, score: updatedHomeScore },
+      awayTeam: { ...liveMatch.awayTeam, score: updatedAwayScore },
+      events: [newEvent, ...liveMatch.events],
+    };
 
-    setPlayers((prevPlayers) =>
-      prevPlayers.map((p) => {
-        let updatedGoals = p.goals || 0;
-        let updatedAssists = p.assists || 0;
+    setLiveMatch(updatedMatch);
+    await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
 
-        if (type === 'goal') {
-          if (p.id === playerId || p.name === playerLabel) {
-            updatedGoals += 1;
-          }
-          if (assistPlayerId && (p.id === assistPlayerId || p.name === assistLabel)) {
-            updatedAssists += 1;
-          }
-        }
-
-        return {
-          ...p,
-          goals: updatedGoals,
-          assists: updatedAssists,
-        };
-      })
-    );
+    // Update goal/assist counts for player in Firestore
+    if (type === 'goal' && scorer) {
+      await updateDoc(doc(db, 'players', scorer.id), {
+        goals: (scorer.goals || 0) + 1,
+      });
+    }
+    if (type === 'goal' && assistPlayer) {
+      await updateDoc(doc(db, 'players', assistPlayer.id), {
+        assists: (assistPlayer.assists || 0) + 1,
+      });
+    }
   };
 
-  const setMatchClockMinutes = (minutes: number) => {
-    setLiveMatch((prev) => ({
-      ...prev,
+  const setMatchClockMinutes = async (minutes: number): Promise<void> => {
+    const updatedMatch = {
+      ...liveMatch,
       clock: `${minutes}'`,
-    }));
+    };
+    setLiveMatch(updatedMatch);
+    await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
   };
 
-  const setUpcomingMatchesList = (matches: UpcomingMatch[]) => {
+  const setUpcomingMatchesList = async (matches: UpcomingMatch[]): Promise<void> => {
     setUpcomingMatches(matches);
+    // Persist list reorder to Firestore
+    const snapshot = await getDocs(collection(db, 'upcomingMatches'));
+    for (const d of snapshot.docs) {
+      await deleteDoc(d.ref);
+    }
+    for (const m of matches) {
+      await setDoc(doc(db, 'upcomingMatches', m.id), m);
+    }
   };
 
   return (

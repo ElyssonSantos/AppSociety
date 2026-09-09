@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { MatchCreationModal } from '../../components/modals/MatchCreationModal';
+import { SoccerBallLogo } from '../../components/common/SoccerBallLogo';
 
 const QUICK_ACTIONS = [
   { id: 'partidas', label: 'Partidas', icon: 'sports_soccer', path: '/partidas' },
   { id: 'elenco', label: 'Cadastrar Elenco', icon: 'group_add', path: '/elencos' },
-  { id: 'tatico', label: 'Quadro Tático', icon: 'tactic', path: '/tatico' },
+  { id: 'tatico', label: 'Quadro Tático', icon: 'strategy', path: '/tatico' },
   { id: 'stats', label: 'Classificação', icon: 'leaderboard', path: '/estatisticas' },
   { id: 'clubes', label: 'Clubes', icon: 'shield', path: '/clubes' },
   { id: 'placar', label: 'Placar Ao Vivo', icon: 'flash_on', path: '/partidas' },
@@ -55,11 +56,11 @@ export const HomePage: React.FC = () => {
     score: `${m.homeScore}-${m.awayScore}`,
   }));
 
-  const wins = histResults.filter(r => r.result === 'W').length;
-  const draws = histResults.filter(r => r.result === 'D').length;
-  const losses = histResults.filter(r => r.result === 'L').length;
+  const wins = histResults.filter((r) => r.result === 'W').length;
+  const draws = histResults.filter((r) => r.result === 'D').length;
+  const losses = histResults.filter((r) => r.result === 'L').length;
 
-  const dynamicBarHeights = histResults.map((r) => r.result === 'W' ? 9 : r.result === 'D' ? 5 : 3);
+  const dynamicBarHeights = histResults.map((r) => (r.result === 'W' ? 9 : r.result === 'D' ? 5 : 3));
 
   const sortedPlayers = [...players].sort((a, b) => (b.goals || 0) - (a.goals || 0));
 
@@ -70,19 +71,16 @@ export const HomePage: React.FC = () => {
       return {
         borderColor: 'border-emerald-500',
         textColor: 'text-emerald-500',
-        badgeBg: 'bg-emerald-500',
       };
     } else if (goals >= 2 || ratio <= 0.7) {
       return {
         borderColor: 'border-amber-400',
         textColor: 'text-amber-500',
-        badgeBg: 'bg-amber-400',
       };
     } else {
       return {
         borderColor: 'border-rose-500',
         textColor: 'text-rose-500',
-        badgeBg: 'bg-rose-500',
       };
     }
   };
@@ -91,8 +89,16 @@ export const HomePage: React.FC = () => {
   const isMatchLive = liveMatch.status === 'live';
   const nextMatchItem = upcomingMatches.length > 0 ? upcomingMatches[0] : null;
 
-  const homeTeamName = isMatchLive ? liveMatch.homeTeam.name : (nextMatchItem ? nextMatchItem.homeTeam : '');
-  const awayTeamName = isMatchLive ? liveMatch.awayTeam.name : (nextMatchItem ? nextMatchItem.awayTeam : '');
+  const homeTeamName = isMatchLive
+    ? liveMatch.homeTeam.name
+    : nextMatchItem
+    ? nextMatchItem.homeTeam
+    : '';
+  const awayTeamName = isMatchLive
+    ? liveMatch.awayTeam.name
+    : nextMatchItem
+    ? nextMatchItem.awayTeam
+    : '';
 
   const homeShield = homeTeamName ? getTeamShield(homeTeamName) : DEFAULT_FALLBACK;
   const awayShield = awayTeamName ? getTeamShield(awayTeamName) : DEFAULT_FALLBACK;
@@ -105,21 +111,18 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  // Background image selection based on match status
+  const cardBgImage = isMatchLive ? '/images/field_green.jpg' : '/images/field_red.png';
+
   return (
     <div className="flex flex-col w-full min-h-full bg-slate-50 pb-20">
-
-      {/* ── HEADER ── */}
+      {/* ── HEADER (MopaFut / Society dos quebrados / SoccerBallLogo) ── */}
       <header className="flex items-center justify-between px-5 pt-5 pb-3 bg-white border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-base shadow"
-            style={{ background: '#e63946' }}
-          >
-            C
-          </div>
+          <SoccerBallLogo size={42} />
           <div>
-            <p className="text-[15px] font-bold text-slate-900 leading-tight">Carrick</p>
-            <p className="text-[12px] font-medium text-slate-600 leading-tight">Treinador principal</p>
+            <p className="text-[16px] font-extrabold text-slate-900 leading-tight tracking-tight">MopaFut</p>
+            <p className="text-[12px] font-semibold text-slate-600 leading-tight">Society dos quebrados</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -138,123 +141,144 @@ export const HomePage: React.FC = () => {
         </div>
       </header>
 
-      {/* ── PRÓXIMA PARTIDA OU EMPTY STATE ── */}
-      <div className="px-4 pt-4 pb-3">
+      {/* ── PRÓXIMA PARTIDA / EM ANDAMENTO CARD (COM IMAGEM DE FUNDO REAIS) ── */}
+      <div className="mx-4 my-4">
         {isMatchLive || nextMatchItem ? (
           <div
-            className="relative overflow-hidden rounded-2xl p-5 cursor-pointer active:scale-[0.99] transition-transform shadow-md"
-            style={{ background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)' }}
+            className="relative overflow-hidden rounded-2xl p-6 shadow-xl cursor-pointer hover:scale-[0.99] transition-transform text-white border border-slate-700/50"
             onClick={handleNextMatchCardClick}
           >
-            {/* Tag de Liga */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-white/90 text-[14px]">
-                  {isMatchLive ? 'sensors' : 'emoji_events'}
-                </span>
-                <span className="text-[11px] font-bold text-white/90 uppercase tracking-widest">
-                  {isMatchLive ? 'Partida Em Andamento' : 'Próxima Partida'}
-                </span>
-              </div>
-              <span className="text-[11px] font-semibold text-white/80 uppercase tracking-wide">
-                {isMatchLive ? liveMatch.competition : nextMatchItem?.competition}
-              </span>
-            </div>
+            {/* Background Image */}
+            <img
+              src={cardBgImage}
+              alt="Campo de Futebol"
+              className="absolute inset-0 w-full h-full object-cover z-0"
+            />
+            {/* Dark Semi-transparent Layer */}
+            <div className="absolute inset-0 bg-black/60 z-0" />
 
-            {/* Times */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
-                  <img
-                    src={homeShield}
-                    alt={homeTeamName}
-                    className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
-                    }}
-                  />
+            {/* Card Content (Relative z-10 & text-white) */}
+            <div className="relative z-10 text-white space-y-4">
+              {/* Header badge */}
+              <div className="flex items-center justify-between border-b border-white/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-white text-[18px]">
+                    {isMatchLive ? 'sensors' : 'sports_soccer'}
+                  </span>
+                  <span className="text-[12px] font-extrabold text-white uppercase tracking-widest">
+                    {isMatchLive ? 'Em Andamento' : 'Próxima Partida'}
+                  </span>
                 </div>
-                <span className="text-[13px] font-bold text-white text-center leading-tight truncate max-w-[100px]">{homeTeamName}</span>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <span className="text-[26px] font-extrabold text-white tracking-tight leading-none">
-                  {isMatchLive ? `${liveMatch.homeTeam.score} - ${liveMatch.awayTeam.score}` : nextMatchItem?.time}
-                </span>
-                <span className="text-[10px] text-white/70 mt-0.5 font-medium uppercase">
-                  {isMatchLive ? liveMatch.clock : nextMatchItem?.dateLabel}
+                <span className="text-[11px] font-bold text-white/90 uppercase tracking-wide bg-white/10 px-2.5 py-1 rounded-full border border-white/20">
+                  {isMatchLive ? liveMatch.competition : nextMatchItem?.competition}
                 </span>
               </div>
 
-              <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 p-0.5 shadow border border-white/30">
-                  <img
-                    src={awayShield}
-                    alt={awayTeamName}
-                    className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
-                    }}
-                  />
+              {/* Teams & Score / Time */}
+              <div className="flex items-center justify-between gap-4 py-2">
+                {/* Home Team */}
+                <div className="flex-1 flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/40 bg-white/20 mb-2 shadow-md">
+                    <img
+                      src={homeShield}
+                      alt={homeTeamName}
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-white truncate max-w-[100px]">{homeTeamName}</span>
                 </div>
-                <span className="text-[13px] font-bold text-white text-center leading-tight truncate max-w-[100px]">{awayTeamName}</span>
+
+                {/* Score / Time */}
+                <div className="flex flex-col items-center">
+                  <span className="text-3xl font-black text-white tracking-wider drop-shadow-md">
+                    {isMatchLive ? `${liveMatch.homeTeam.score} - ${liveMatch.awayTeam.score}` : nextMatchItem?.time}
+                  </span>
+                  <span className="text-xs font-bold text-amber-300 mt-1 uppercase tracking-wider bg-black/40 px-2.5 py-0.5 rounded-full border border-white/10">
+                    {isMatchLive ? liveMatch.clock : nextMatchItem?.dateLabel}
+                  </span>
+                </div>
+
+                {/* Away Team */}
+                <div className="flex-1 flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/40 bg-white/20 mb-2 shadow-md">
+                    <img
+                      src={awayShield}
+                      alt={awayTeamName}
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-white truncate max-w-[100px]">{awayTeamName}</span>
+                </div>
+              </div>
+
+              {/* Footer info */}
+              <div className="flex items-center justify-between text-white/90 text-xs border-t border-white/20 pt-3">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <span className="material-symbols-outlined text-white text-[14px]">sports</span>
+                  <span>Árbitro Oficial</span>
+                </div>
+                <div className="flex items-center gap-1.5 font-medium">
+                  <span className="material-symbols-outlined text-white text-[14px]">stadium</span>
+                  <span>{isMatchLive ? liveMatch.venue : nextMatchItem?.venue}</span>
+                </div>
               </div>
             </div>
-
-            {/* Rodapé Card */}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-white/70 text-[13px]">person</span>
-                <span className="text-[11px] text-white/80">Árbitro Oficial</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-white/70 text-[13px]">calendar_month</span>
-                <span className="text-[11px] text-white/80">Rodada 01</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-white/70 text-[13px]">stadium</span>
-                <span className="text-[11px] text-white/80">
-                  {isMatchLive ? liveMatch.venue : nextMatchItem?.venue}
-                </span>
-              </div>
-            </div>
-
-            <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
           </div>
         ) : (
           <div
             onClick={() => navigate('/partidas')}
-            className="relative overflow-hidden rounded-2xl p-6 cursor-pointer active:scale-[0.99] transition-transform shadow-sm bg-white border border-slate-200 flex flex-col items-center justify-center text-center space-y-3"
+            className="relative overflow-hidden rounded-2xl p-6 cursor-pointer active:scale-[0.99] transition-transform shadow-md border border-slate-700"
           >
-            <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-[#e63946]">
-              <span className="material-symbols-outlined text-[24px]">sports_soccer</span>
+            {/* Background Image fallback */}
+            <img
+              src="/images/field_red.png"
+              alt="Campo de Futebol"
+              className="absolute inset-0 w-full h-full object-cover z-0"
+            />
+            <div className="absolute inset-0 bg-black/70 z-0" />
+
+            <div className="relative z-10 text-white flex flex-col items-center justify-center text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white">
+                <span className="material-symbols-outlined text-[24px]">sports_soccer</span>
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white">Nenhuma partida agendada</h3>
+                <p className="text-xs text-white/80 mt-1 max-w-xs">
+                  Crie ou agende partidas para acompanhar o placar e as estatísticas ao vivo.
+                </p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/partidas');
+                }}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-extrabold text-xs shadow-lg border border-white/30 hover:bg-black transition-all"
+              >
+                + Criar Partida
+              </button>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Nenhuma partida agendada</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs">Crie ou agende partidas para acompanhar o placar e as estatísticas ao vivo.</p>
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate('/partidas'); }}
-              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
-            >
-              + Criar Partida
-            </button>
           </div>
         )}
       </div>
 
-      {/* ── ÚLTIMOS JOGOS (COM EMPTY STATE) ── */}
-      <div className="mx-4 mb-3 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+      {/* ── ÚLTIMOS JOGOS ── */}
+      <div className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#e63946]">bar_chart</span>
+            <span className="material-symbols-outlined text-[18px] text-slate-900">bar_chart</span>
             <h2 className="text-[14px] font-bold text-slate-900">
               {histResults.length > 0 ? `Últimos ${histResults.length} jogos` : 'Últimos Jogos'}
             </h2>
           </div>
           <button
             onClick={() => navigate('/historico')}
-            className="text-[12px] font-semibold text-[#e63946] flex items-center gap-0.5 hover:opacity-75 transition-opacity"
+            className="text-[12px] font-semibold text-slate-900 flex items-center gap-0.5 hover:opacity-75 transition-opacity"
           >
             Ver histórico
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
@@ -263,7 +287,6 @@ export const HomePage: React.FC = () => {
 
         {histResults.length > 0 ? (
           <>
-            {/* Barras dinâmicas */}
             <div className="flex items-end gap-1.5 h-14 mb-3">
               {histResults.map((r, i) => (
                 <div key={i} className="flex-1 flex items-end">
@@ -275,7 +298,6 @@ export const HomePage: React.FC = () => {
               ))}
             </div>
 
-            {/* Escudos dos adversários */}
             <div className="flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar">
               {histResults.map((r, i) => {
                 const shieldSrc = getTeamShield(r.opponent);
@@ -286,7 +308,9 @@ export const HomePage: React.FC = () => {
                         src={shieldSrc}
                         alt={r.opponent}
                         className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_FALLBACK; }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_FALLBACK;
+                        }}
                       />
                     </div>
                     <div
@@ -299,7 +323,6 @@ export const HomePage: React.FC = () => {
               })}
             </div>
 
-            {/* Legenda */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
@@ -321,21 +344,23 @@ export const HomePage: React.FC = () => {
               <span className="material-symbols-outlined text-[20px]">history</span>
             </div>
             <p className="text-xs font-bold text-slate-800">Sem partidas encerradas</p>
-            <p className="text-[11px] text-slate-500 max-w-xs">O histórico de confrontos será exibido aqui conforme as partidas forem concluídas.</p>
+            <p className="text-[11px] text-slate-500 max-w-xs">
+              O histórico de confrontos será exibido aqui conforme as partidas forem concluídas.
+            </p>
           </div>
         )}
       </div>
 
-      {/* ── MELHORES JOGADORES (COM EMPTY STATE) ── */}
-      <div className="mx-4 mb-3 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+      {/* ── MELHORES JOGADORES ── */}
+      <div className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#e63946]">trophy</span>
+            <span className="material-symbols-outlined text-[18px] text-slate-900">trophy</span>
             <h2 className="text-[14px] font-bold text-slate-900">Melhores Jogadores</h2>
           </div>
           <button
             onClick={() => navigate('/elencos')}
-            className="text-[12px] font-semibold text-[#e63946] flex items-center gap-0.5 hover:opacity-75 transition-opacity"
+            className="text-[12px] font-semibold text-slate-900 flex items-center gap-0.5 hover:opacity-75 transition-opacity"
           >
             Ver elenco
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
@@ -403,8 +428,8 @@ export const HomePage: React.FC = () => {
               onClick={() => navigate(action.path)}
               className="flex flex-col items-center justify-center gap-2 bg-white rounded-2xl py-4 border border-slate-200 shadow-sm active:scale-[0.97] hover:shadow-md transition-all cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-50">
-                <span className="material-symbols-outlined text-[22px] text-[#e63946]">{action.icon}</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100">
+                <span className="material-symbols-outlined text-[22px] text-slate-900">{action.icon}</span>
               </div>
               <span className="text-[11px] font-semibold text-slate-800 text-center leading-tight px-1">
                 {action.label}

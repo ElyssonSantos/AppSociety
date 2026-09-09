@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { SoccerBallLogo } from '../common/SoccerBallLogo';
 
 interface SidebarProps {
   isOpenMobile?: boolean;
@@ -15,9 +16,9 @@ interface SidebarLink {
 
 const mainLinks: SidebarLink[] = [
   { path: '/inicio', label: 'Central de Controle', icon: 'dashboard' },
-  { path: '/partidas', label: 'Jogos & Placar ao Vivo', icon: 'sports', badge: '2 AO VIVO' },
+  { path: '/partidas', label: 'Jogos & Placar ao Vivo', icon: 'sports' },
   { path: '/tatico', label: 'Quadro Tático', icon: 'strategy' },
-  { path: '/elencos', label: 'Gestão de Elenco', icon: 'groups', badge: '28' },
+  { path: '/elencos', label: 'Gestão de Elenco', icon: 'groups' },
 ];
 
 const secondaryLinks: SidebarLink[] = [
@@ -57,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
                   className={({ isActive }) =>
                     `flex items-center justify-between px-3 py-2.5 rounded-xl font-body-md text-body-md transition-all ${
                       isActive
-                        ? 'bg-[#fff0f0] text-primary font-semibold shadow-sm'
+                        ? 'bg-slate-900 text-white font-semibold shadow-sm'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                     }`
                   }
@@ -90,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
                   className={({ isActive }) =>
                     `flex items-center justify-between px-3 py-2.5 rounded-xl font-body-md text-body-md transition-all ${
                       isActive
-                        ? 'bg-[#fff0f0] text-primary font-semibold shadow-sm'
+                        ? 'bg-slate-900 text-white font-semibold shadow-sm'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                     }`
                   }
@@ -107,13 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
 
         {/* Bottom User Card / Status */}
         <div className="p-3 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-secondary shrink-0">
-            <span className="material-symbols-outlined text-[20px]">sports_soccer</span>
-          </div>
+          <SoccerBallLogo size={34} />
           <div className="min-w-0 flex-1">
-            <p className="font-headline-md text-body-sm font-bold text-on-surface truncate">Arena Fut5</p>
+            <p className="font-headline-md text-body-sm font-bold text-on-surface truncate">MopaFut</p>
             <span className="font-label-badge text-[10px] text-secondary flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Sistema Online
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Society dos quebrados
             </span>
           </div>
         </div>
