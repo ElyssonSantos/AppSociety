@@ -47,83 +47,101 @@ interface AppContextType {
 
 const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png';
 
-const INITIAL_TEAMS: Team[] = [];
+const LS_TEAMS = 'mopafut_teams_cache';
+const LS_PLAYERS = 'mopafut_players_cache';
+const LS_UPCOMING = 'mopafut_upcoming_cache';
+const LS_HISTORY = 'mopafut_history_cache';
+const LS_LIVE = 'mopafut_live_cache';
 
-const INITIAL_PLAYERS: Player[] = [];
+const loadFromLS = <T,>(key: string, fallback: T): T => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
-const INITIAL_UPCOMING: UpcomingMatch[] = [];
+const saveToLS = <T,>(key: string, value: T) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch { /* ignore storage errors */ }
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [liveMatch, setLiveMatch] = useState<LiveMatchFull>({
-    id: 'live-current',
-    homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
-    awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
-    competition: 'Jogo Casual',
-    venue: 'Quadra Society 01',
-    status: 'finished',
-    clock: '0:00',
-    events: [],
-  });
+  const [liveMatch, setLiveMatch] = useState<LiveMatchFull>(() =>
+    loadFromLS<LiveMatchFull>(LS_LIVE, {
+      id: 'live-current',
+      homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
+      awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
+      competition: 'Jogo Casual',
+      venue: 'Quadra Society 01',
+      status: 'finished',
+      clock: '0:00',
+      events: [],
+    })
+  );
 
-  const [upcomingMatches, setUpcomingMatches] = useState<UpcomingMatch[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [upcomingMatches, setUpcomingMatches] = useState<UpcomingMatch[]>(() =>
+    loadFromLS<UpcomingMatch[]>(LS_UPCOMING, [])
+  );
+  const [players, setPlayers] = useState<Player[]>(() =>
+    loadFromLS<Player[]>(LS_PLAYERS, [])
+  );
+  const [teams, setTeams] = useState<Team[]>(() =>
+    loadFromLS<Team[]>(LS_TEAMS, [])
+  );
+  const [matchHistory, setMatchHistory] = useState<MatchHistoryEntry[]>(() =>
+    loadFromLS<MatchHistoryEntry[]>(LS_HISTORY, [])
+  );
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
-  const [matchHistory, setMatchHistory] = useState<MatchHistoryEntry[]>([]);
+
+  // Sync state changes with localStorage
+  useEffect(() => { saveToLS(LS_TEAMS, teams); }, [teams]);
+  useEffect(() => { saveToLS(LS_PLAYERS, players); }, [players]);
+  useEffect(() => { saveToLS(LS_UPCOMING, upcomingMatches); }, [upcomingMatches]);
+  useEffect(() => { saveToLS(LS_HISTORY, matchHistory); }, [matchHistory]);
+  useEffect(() => { saveToLS(LS_LIVE, liveMatch); }, [liveMatch]);
 
   // ──────────────────────────────────────────────────────────
-  // Real-time Firestore Listeners (onSnapshot) & Seed Logic
+  // Real-time Firestore Listeners (onSnapshot)
   // ──────────────────────────────────────────────────────────
   useEffect(() => {
     // 1. Teams listener
     const unsubscribeTeams = onSnapshot(
       collection(db, 'teams'),
-      async (snapshot) => {
-        if (snapshot.empty) {
-          // Seed initial teams if Firestore collection is empty
-          for (const team of INITIAL_TEAMS) {
-            await setDoc(doc(db, 'teams', team.id), team);
-          }
-        } else {
+      (snapshot) => {
+        if (!snapshot.empty) {
           const loadedTeams: Team[] = snapshot.docs.map((d) => d.data() as Team);
           setTeams(loadedTeams);
         }
       },
       (error) => {
-        console.warn('Firestore teams snapshot error:', error);
+        console.warn('Firestore teams snapshot notice:', error?.message);
       }
     );
 
     // 2. Players listener
     const unsubscribePlayers = onSnapshot(
       collection(db, 'players'),
-      async (snapshot) => {
-        if (snapshot.empty) {
-          // Seed initial players if empty
-          for (const player of INITIAL_PLAYERS) {
-            await setDoc(doc(db, 'players', player.id), player);
-          }
-        } else {
+      (snapshot) => {
+        if (!snapshot.empty) {
           const loadedPlayers: Player[] = snapshot.docs.map((d) => d.data() as Player);
           setPlayers(loadedPlayers);
         }
       },
       (error) => {
-        console.warn('Firestore players snapshot error:', error);
+        console.warn('Firestore players snapshot notice:', error?.message);
       }
     );
 
     // 3. Upcoming matches listener
     const unsubscribeUpcoming = onSnapshot(
       collection(db, 'upcomingMatches'),
-      async (snapshot) => {
-        if (snapshot.empty) {
-          for (const match of INITIAL_UPCOMING) {
-            await setDoc(doc(db, 'upcomingMatches', match.id), match);
-          }
-        } else {
+      (snapshot) => {
+        if (!snapshot.empty) {
           const loadedUpcoming: UpcomingMatch[] = snapshot.docs.map(
             (d) => d.data() as UpcomingMatch
           );
@@ -131,7 +149,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       },
       (error) => {
-        console.warn('Firestore upcomingMatches snapshot error:', error);
+        console.warn('Firestore upcomingMatches snapshot notice:', error?.message);
       }
     );
 
@@ -139,17 +157,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeHistory = onSnapshot(
       collection(db, 'matchHistory'),
       (snapshot) => {
-        const loadedHistory: MatchHistoryEntry[] = snapshot.docs.map(
-          (d) => d.data() as MatchHistoryEntry
-        );
-        // Sort newest first
-        loadedHistory.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setMatchHistory(loadedHistory);
+        if (!snapshot.empty) {
+          const loadedHistory: MatchHistoryEntry[] = snapshot.docs.map(
+            (d) => d.data() as MatchHistoryEntry
+          );
+          loadedHistory.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setMatchHistory(loadedHistory);
+        }
       },
       (error) => {
-        console.warn('Firestore matchHistory snapshot error:', error);
+        console.warn('Firestore matchHistory snapshot notice:', error?.message);
       }
     );
 
@@ -159,23 +178,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (snapshotDoc) => {
         if (snapshotDoc.exists()) {
           setLiveMatch(snapshotDoc.data() as LiveMatchFull);
-        } else {
-          // Create initial live match doc
-          const defaultLive: LiveMatchFull = {
-            id: 'live-current',
-            homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
-            awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
-            competition: 'Jogo Casual',
-            venue: 'Quadra Society 01',
-            status: 'finished',
-            clock: '0:00',
-            events: [],
-          };
-          setDoc(doc(db, 'liveMatch', 'current'), defaultLive);
         }
       },
       (error) => {
-        console.warn('Firestore liveMatch snapshot error:', error);
+        console.warn('Firestore liveMatch snapshot notice:', error?.message);
       }
     );
 
@@ -225,7 +231,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setTeams((prev) => [...prev, newTeam]);
-    await setDoc(doc(db, 'teams', newTeam.id), newTeam);
+
+    try {
+      await setDoc(doc(db, 'teams', newTeam.id), newTeam);
+    } catch (err: any) {
+      console.warn('Firestore write notice (salvo localmente):', err?.message);
+    }
     return newTeam;
   };
 
@@ -233,7 +244,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTeams((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updatedData } : t))
     );
-    await updateDoc(doc(db, 'teams', id), updatedData);
+    try {
+      await updateDoc(doc(db, 'teams', id), updatedData);
+    } catch (err: any) {
+      console.warn('Firestore update notice:', err?.message);
+    }
   };
 
   const deleteTeam = async (id: string): Promise<void> => {
@@ -241,7 +256,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPlayers((prev) =>
       prev.map((p) => (p.teamId === id ? { ...p, teamId: undefined } : p))
     );
-    await deleteDoc(doc(db, 'teams', id));
+    try {
+      await deleteDoc(doc(db, 'teams', id));
+    } catch (err: any) {
+      console.warn('Firestore delete notice:', err?.message);
+    }
   };
 
   const addPlayer = async (newPlayerData: Partial<Player>): Promise<Player> => {
@@ -274,11 +293,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const targetTeam = teams.find((t) => t.id === newPlayerData.teamId);
       if (targetTeam) {
         const updatedPlayers = Array.from(new Set([...targetTeam.players, created.id]));
-        await updateDoc(doc(db, 'teams', targetTeam.id), { players: updatedPlayers });
+        try {
+          await updateDoc(doc(db, 'teams', targetTeam.id), { players: updatedPlayers });
+        } catch { /* ignore */ }
       }
     }
 
-    await setDoc(doc(db, 'players', created.id), created);
+    try {
+      await setDoc(doc(db, 'players', created.id), created);
+    } catch (err: any) {
+      console.warn('Firestore write notice (salvo localmente):', err?.message);
+    }
     return created;
   };
 
@@ -286,7 +311,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPlayers((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
     );
-    await updateDoc(doc(db, 'players', id), updatedData);
+    try {
+      await updateDoc(doc(db, 'players', id), updatedData);
+    } catch (err: any) {
+      console.warn('Firestore update notice:', err?.message);
+    }
 
     if (updatedData.teamId !== undefined) {
       const newTeamId = updatedData.teamId;
@@ -296,10 +325,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (hasPlayer && !shouldHavePlayer) {
           const filtered = t.players.filter((pid) => pid !== id);
-          await updateDoc(doc(db, 'teams', t.id), { players: filtered });
+          try { await updateDoc(doc(db, 'teams', t.id), { players: filtered }); } catch {}
         } else if (!hasPlayer && shouldHavePlayer) {
           const added = [...t.players, id];
-          await updateDoc(doc(db, 'teams', t.id), { players: added });
+          try { await updateDoc(doc(db, 'teams', t.id), { players: added }); } catch {}
         }
       }
     }
@@ -307,7 +336,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deletePlayer = async (id: string): Promise<void> => {
     setPlayers((prev) => prev.filter((p) => p.id !== id));
-    await deleteDoc(doc(db, 'players', id));
+    try {
+      await deleteDoc(doc(db, 'players', id));
+    } catch (err: any) {
+      console.warn('Firestore delete notice:', err?.message);
+    }
   };
 
   const createNewMatch = async (
@@ -330,7 +363,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(newMatch);
     closeCreationModal();
 
-    await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+    } catch (err: any) {
+      console.warn('Firestore write notice:', err?.message);
+    }
     return newMatchId;
   };
 
@@ -352,7 +389,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUpcomingMatches((prev) => [...prev, newMatch]);
     closeCreationModal();
 
-    await setDoc(doc(db, 'upcomingMatches', newMatch.id), newMatch);
+    try {
+      await setDoc(doc(db, 'upcomingMatches', newMatch.id), newMatch);
+    } catch (err: any) {
+      console.warn('Firestore write notice:', err?.message);
+    }
   };
 
   const startUpcomingMatch = async (matchId: string): Promise<string> => {
@@ -376,8 +417,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(newMatch);
     setUpcomingMatches((prev) => prev.filter((m) => m.id !== matchId));
 
-    await deleteDoc(doc(db, 'upcomingMatches', matchId));
-    await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+    try {
+      await deleteDoc(doc(db, 'upcomingMatches', matchId));
+      await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+    } catch (err: any) {
+      console.warn('Firestore notice:', err?.message);
+    }
 
     return newMatchId;
   };
@@ -397,7 +442,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setLiveMatch(updatedLiveMatch);
-    await setDoc(doc(db, 'liveMatch', 'current'), updatedLiveMatch);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), updatedLiveMatch);
+    } catch {}
 
     // Persist to match history
     const historyEntry: MatchHistoryEntry = {
@@ -413,7 +460,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setMatchHistory((prev) => [historyEntry, ...prev]);
-    await setDoc(doc(db, 'matchHistory', historyEntry.id), historyEntry);
+    try {
+      await setDoc(doc(db, 'matchHistory', historyEntry.id), historyEntry);
+    } catch {}
 
     // Update Team Stats
     for (const team of teams) {
@@ -461,13 +510,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         form: updatedForm,
       };
 
-      await updateDoc(doc(db, 'teams', team.id), updatedTeamData);
+      try {
+        await updateDoc(doc(db, 'teams', team.id), updatedTeamData);
+      } catch {}
     }
   };
 
   const deleteMatchHistoryEntry = async (id: string): Promise<void> => {
     setMatchHistory((prev) => prev.filter((m) => m.id !== id));
-    await deleteDoc(doc(db, 'matchHistory', id));
+    try {
+      await deleteDoc(doc(db, 'matchHistory', id));
+    } catch (err: any) {
+      console.warn('Firestore delete notice:', err?.message);
+    }
   };
 
   const addMatchEvent = async ({
@@ -533,18 +588,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setLiveMatch(updatedMatch);
-    await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+    } catch {}
 
-    // Update goal/assist counts for player in Firestore
     if (type === 'goal' && scorer) {
-      await updateDoc(doc(db, 'players', scorer.id), {
-        goals: (scorer.goals || 0) + 1,
-      });
+      try {
+        await updateDoc(doc(db, 'players', scorer.id), {
+          goals: (scorer.goals || 0) + 1,
+        });
+      } catch {}
     }
     if (type === 'goal' && assistPlayer) {
-      await updateDoc(doc(db, 'players', assistPlayer.id), {
-        assists: (assistPlayer.assists || 0) + 1,
-      });
+      try {
+        await updateDoc(doc(db, 'players', assistPlayer.id), {
+          assists: (assistPlayer.assists || 0) + 1,
+        });
+      } catch {}
     }
   };
 
@@ -554,19 +614,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clock: `${minutes}'`,
     };
     setLiveMatch(updatedMatch);
-    await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+    } catch {}
   };
 
   const setUpcomingMatchesList = async (matches: UpcomingMatch[]): Promise<void> => {
     setUpcomingMatches(matches);
-    // Persist list reorder to Firestore
-    const snapshot = await getDocs(collection(db, 'upcomingMatches'));
-    for (const d of snapshot.docs) {
-      await deleteDoc(d.ref);
-    }
-    for (const m of matches) {
-      await setDoc(doc(db, 'upcomingMatches', m.id), m);
-    }
+    try {
+      const snapshot = await getDocs(collection(db, 'upcomingMatches'));
+      for (const d of snapshot.docs) {
+        await deleteDoc(d.ref);
+      }
+      for (const m of matches) {
+        await setDoc(doc(db, 'upcomingMatches', m.id), m);
+      }
+    } catch {}
   };
 
   return (

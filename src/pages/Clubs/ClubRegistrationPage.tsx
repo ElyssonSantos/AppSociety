@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const ClubRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,31 +10,48 @@ export const ClubRegistrationPage: React.FC = () => {
   const [name, setName] = useState('');
   const [shieldUrl, setShieldUrl] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdSuccess, setCreatedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreview(result);
-        setShieldUrl(result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 250, 250, 0.7);
+        setPreview(compressed);
+        setShieldUrl(compressed);
+      } catch (err) {
+        console.warn('Erro ao comprimir imagem, usando original:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          setPreview(result);
+          setShieldUrl(result);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
 
-    addTeam(name.trim(), shieldUrl || preview || undefined);
-    setCreatedSuccess(true);
+    setIsSubmitting(true);
+    setErrorMessage('');
 
-    setTimeout(() => {
-      navigate('/clubes');
-    }, 1200);
+    try {
+      await addTeam(name.trim(), shieldUrl || preview || undefined);
+      setCreatedSuccess(true);
+      setTimeout(() => {
+        navigate('/clubes');
+      }, 1000);
+    } catch (err: any) {
+      console.error('Erro ao salvar clube:', err);
+      setErrorMessage('Erro ao salvar clube no banco de dados. Tente novamente.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,7 +67,7 @@ export const ClubRegistrationPage: React.FC = () => {
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </button>
-          <span className="px-3 py-1 rounded-full bg-rose-50 text-[#e63946] border border-rose-100 text-xs font-bold uppercase tracking-wider">
+          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-900 border border-slate-200 text-xs font-bold uppercase tracking-wider">
             Cadastro de Equipe
           </span>
           <div className="w-10" />
@@ -67,7 +85,7 @@ export const ClubRegistrationPage: React.FC = () => {
 
         {/* Form Container */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 pt-2">
-          
+
           {/* Field 1: Nome da Equipe */}
           <div className="flex flex-col gap-1.5 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
             <label className="text-xs text-slate-600 uppercase font-bold tracking-wider">
@@ -83,7 +101,7 @@ export const ClubRegistrationPage: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Resenha FC, Amigos do Zico"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-[#e63946] border border-slate-200 transition-colors placeholder:text-slate-400"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-slate-900 border border-slate-200 transition-colors placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -93,29 +111,29 @@ export const ClubRegistrationPage: React.FC = () => {
             <label className="text-xs text-slate-600 uppercase font-bold tracking-wider">
               Imagem / Escudo da Equipe
             </label>
-            
-            <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 hover:border-[#e63946] transition-colors cursor-pointer relative overflow-hidden">
+
+            <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 hover:border-slate-900 transition-colors cursor-pointer relative overflow-hidden">
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer z-10"
               />
-              
+
               {preview || shieldUrl ? (
-                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#e63946] shadow-md mb-2">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-900 shadow-md mb-2">
                   <img src={preview || shieldUrl} alt="Preview do Escudo" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[#e63946] mb-2 shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-900 mb-2 shadow-sm">
                   <span className="material-symbols-outlined text-[32px]">upload_file</span>
                 </div>
               )}
-              
+
               <span className="text-xs font-bold text-slate-900">
                 {preview ? 'Trocar Imagem do Escudo' : 'Clique ou arraste a imagem do escudo aqui'}
               </span>
-              <span className="text-[11px] text-slate-500 mt-0.5">PNG, JPG ou SVG (máx. 5MB)</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">PNG, JPG ou SVG</span>
             </div>
 
             {/* Optional Image URL Input */}
@@ -131,31 +149,40 @@ export const ClubRegistrationPage: React.FC = () => {
                   setPreview(e.target.value);
                 }}
                 placeholder="https://exemplo.com/escudo.png"
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-[#e63946] border border-slate-200 placeholder:text-slate-400"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-slate-900 border border-slate-200 placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {/* Toast / Success Feedback */}
           {createdSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-sm flex items-center justify-center gap-2 animate-pulse shadow-sm">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-sm flex items-center justify-center gap-2 shadow-sm">
               <span className="material-symbols-outlined text-[20px]">check_circle</span>
               Equipe criada com sucesso! Redirecionando...
             </div>
           )}
 
-          {/* Large Prominent Submit Button */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-sm flex items-center justify-center gap-2 shadow-sm">
+              <span className="material-symbols-outlined text-[20px]">error</span>
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Submit Button */}
           <button
             type="submit"
-            disabled={!name.trim()}
+            disabled={!name.trim() || isSubmitting}
             className={`w-full py-4 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
-              name.trim()
-                ? 'bg-[#e63946] text-white hover:bg-rose-700 cursor-pointer'
+              name.trim() && !isSubmitting
+                ? 'bg-slate-900 text-white hover:bg-black cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
-            <span className="material-symbols-outlined text-[24px]">add_circle</span>
-            Confirmar Criação
+            <span className="material-symbols-outlined text-[24px]">
+              {isSubmitting ? 'sync' : 'add_circle'}
+            </span>
+            {isSubmitting ? 'Salvando...' : 'Confirmar Criação'}
           </button>
         </form>
 
