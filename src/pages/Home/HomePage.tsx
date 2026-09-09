@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { MatchCreationModal } from '../../components/modals/MatchCreationModal';
 import { SoccerBallLogo } from '../../components/common/SoccerBallLogo';
+import { LiveMatchFull } from '../../types';
 
 const QUICK_ACTIONS = [
   { id: 'partidas', label: 'Partidas', icon: 'sports_soccer', path: '/partidas' },
@@ -19,6 +20,22 @@ function resultColor(r: 'W' | 'D' | 'L') {
   return '#ef4444';
 }
 
+const calculateRemainingSeconds = (match: LiveMatchFull, nowMs: number): number => {
+  const totalSecs = (match.durationMinutes || 15) * 60;
+  let elapsed = match.elapsedSeconds || 0;
+  if (match.isTimerRunning && match.timerStartedAt) {
+    const currentStintSecs = Math.floor((nowMs - match.timerStartedAt) / 1000);
+    elapsed += currentStintSecs;
+  }
+  return Math.max(0, totalSecs - elapsed);
+};
+
+const formatTime = (secs: number) => {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -31,7 +48,15 @@ export const HomePage: React.FC = () => {
     liveMatch,
   } = useApp();
 
+  const [nowMs, setNowMs] = useState<number>(Date.now());
   const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -113,10 +138,11 @@ export const HomePage: React.FC = () => {
 
   // Background image selection based on match status
   const cardBgImage = isMatchLive ? '/images/field_green.jpg' : '/images/field_red.png';
+  const liveRemainingSecs = calculateRemainingSeconds(liveMatch, nowMs);
 
   return (
     <div className="flex flex-col w-full min-h-full bg-slate-50 pb-20">
-      {/* ── HEADER (MopaFut / Society dos quebrados / SoccerBallLogo) ── */}
+      {/* ── HEADER ── */}
       <header className="flex items-center justify-between px-5 pt-5 pb-3 bg-white border-b border-slate-100">
         <div className="flex items-center gap-3">
           <SoccerBallLogo size={42} />
@@ -141,7 +167,7 @@ export const HomePage: React.FC = () => {
         </div>
       </header>
 
-      {/* ── PRÓXIMA PARTIDA / EM ANDAMENTO CARD (COM IMAGEM DE FUNDO REAIS) ── */}
+      {/* ── PRÓXIMA PARTIDA / EM ANDAMENTO CARD ── */}
       <div className="mx-4 my-4">
         {isMatchLive || nextMatchItem ? (
           <div
@@ -197,7 +223,7 @@ export const HomePage: React.FC = () => {
                     {isMatchLive ? `${liveMatch.homeTeam.score} - ${liveMatch.awayTeam.score}` : nextMatchItem?.time}
                   </span>
                   <span className="text-xs font-bold text-amber-300 mt-1 uppercase tracking-wider bg-black/40 px-2.5 py-0.5 rounded-full border border-white/10">
-                    {isMatchLive ? liveMatch.clock : nextMatchItem?.dateLabel}
+                    {isMatchLive ? formatTime(liveRemainingSecs) : nextMatchItem?.dateLabel}
                   </span>
                 </div>
 

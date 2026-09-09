@@ -70,6 +70,10 @@ export interface LiveMatchFull {
   };
   status: 'live' | 'upcoming' | 'finished';
   clock: string;
+  durationMinutes?: number;
+  timerStartedAt?: number;
+  elapsedSeconds?: number;
+  isTimerRunning?: boolean;
   venue: string;
   competition: string;
   events: MatchEvent[];

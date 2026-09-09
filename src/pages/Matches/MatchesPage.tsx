@@ -1,7 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MatchCreationModal } from '../../components/modals/MatchCreationModal';
 import { useApp } from '../../context/AppContext';
+import { LiveMatchFull } from '../../types';
+
+const calculateRemainingSeconds = (match: LiveMatchFull, nowMs: number): number => {
+  const totalSecs = (match.durationMinutes || 15) * 60;
+  let elapsed = match.elapsedSeconds || 0;
+  if (match.isTimerRunning && match.timerStartedAt) {
+    const currentStintSecs = Math.floor((nowMs - match.timerStartedAt) / 1000);
+    elapsed += currentStintSecs;
+  }
+  return Math.max(0, totalSecs - elapsed);
+};
+
+const formatTime = (secs: number) => {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
 
 export const MatchesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +33,15 @@ export const MatchesPage: React.FC = () => {
     startUpcomingMatch,
   } = useApp();
 
+  const [nowMs, setNowMs] = useState<number>(Date.now());
   const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -60,8 +85,8 @@ export const MatchesPage: React.FC = () => {
   const homeShield = getTeamShield(liveMatch.homeTeam.name);
   const awayShield = getTeamShield(liveMatch.awayTeam.name);
 
-  // Background image for Live ('Em Andamento') or Finished card
-  const liveMatchBgImage = liveMatch.status === 'live' ? '/images/field_green.jpg' : '/images/field_green.jpg';
+  const liveMatchBgImage = '/images/field_green.jpg';
+  const remainingSecs = calculateRemainingSeconds(liveMatch, nowMs);
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
@@ -84,21 +109,18 @@ export const MatchesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Live Match Active Banner — Imagem de Fundo de Campo Verde Iluminado */}
+      {/* Live Match Active Banner */}
       <div
         onClick={() => navigate('/ao-vivo/' + liveMatch.id)}
         className="relative overflow-hidden rounded-2xl p-5 shadow-xl cursor-pointer active:scale-[0.99] transition-transform text-white border border-slate-700 mx-0"
       >
-        {/* Background Image Layer */}
         <img
           src={liveMatchBgImage}
           alt="Campo Iluminado"
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
-        {/* Dark Semi-transparent Layer */}
         <div className="absolute inset-0 bg-black/60 z-0" />
 
-        {/* Content Container (text-white relative z-10) */}
         <div className="relative z-10 text-white space-y-4">
           <div className="flex items-center justify-between border-b border-white/20 pb-3">
             <div className="flex items-center gap-2">
@@ -136,7 +158,7 @@ export const MatchesPage: React.FC = () => {
             <div className="flex flex-col items-center gap-1">
               <span className="text-2xl font-black text-white tracking-widest">VS</span>
               <span className="text-[11px] font-bold text-amber-300 bg-black/40 px-2.5 py-0.5 rounded-full border border-white/10">
-                {liveMatch.clock}
+                {liveMatch.status === 'finished' ? '00:00' : formatTime(remainingSecs)}
               </span>
             </div>
 

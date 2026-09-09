@@ -32,6 +32,8 @@ interface AppContextType {
   startUpcomingMatch: (matchId: string) => Promise<string>;
   finishLiveMatch: () => Promise<void>;
   deleteMatchHistoryEntry: (id: string) => Promise<void>;
+  toggleLiveTimer: () => Promise<void>;
+  addExtraTimeToLiveMatch: (minutes: number) => Promise<void>;
   addMatchEvent: (event: {
     type: 'goal' | 'yellow_card' | 'red_card' | 'sub' | 'shot' | 'foul';
     team: 'home' | 'away';
@@ -65,7 +67,7 @@ const loadFromLS = <T,>(key: string, fallback: T): T => {
 const saveToLS = <T,>(key: string, value: T) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch { /* ignore storage errors */ }
+  } catch { /* ignore */ }
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -80,6 +82,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       venue: 'Quadra Society 01',
       status: 'finished',
       clock: '0:00',
+      durationMinutes: 15,
+      elapsedSeconds: 0,
+      isTimerRunning: false,
       events: [],
     })
   );
@@ -98,7 +103,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
 
-  // Sync state changes with localStorage
+  // Sync local state to localStorage as secondary fallback
   useEffect(() => { saveToLS(LS_TEAMS, teams); }, [teams]);
   useEffect(() => { saveToLS(LS_PLAYERS, players); }, [players]);
   useEffect(() => { saveToLS(LS_UPCOMING, upcomingMatches); }, [upcomingMatches]);
@@ -106,20 +111,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { saveToLS(LS_LIVE, liveMatch); }, [liveMatch]);
 
   // ──────────────────────────────────────────────────────────
-  // Real-time Firestore Listeners (onSnapshot)
+  // Firestore Real-Time Global Listeners (Single Source of Truth)
   // ──────────────────────────────────────────────────────────
   useEffect(() => {
     // 1. Teams listener
     const unsubscribeTeams = onSnapshot(
       collection(db, 'teams'),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const loadedTeams: Team[] = snapshot.docs.map((d) => d.data() as Team);
-          setTeams(loadedTeams);
-        }
+        const loadedTeams: Team[] = snapshot.docs.map((d) => d.data() as Team);
+        setTeams(loadedTeams);
       },
       (error) => {
-        console.warn('Firestore teams snapshot notice:', error?.message);
+        console.warn('Firestore teams listener warning:', error?.message);
       }
     );
 
@@ -127,13 +130,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribePlayers = onSnapshot(
       collection(db, 'players'),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const loadedPlayers: Player[] = snapshot.docs.map((d) => d.data() as Player);
-          setPlayers(loadedPlayers);
-        }
+        const loadedPlayers: Player[] = snapshot.docs.map((d) => d.data() as Player);
+        setPlayers(loadedPlayers);
       },
       (error) => {
-        console.warn('Firestore players snapshot notice:', error?.message);
+        console.warn('Firestore players listener warning:', error?.message);
       }
     );
 
@@ -141,15 +142,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeUpcoming = onSnapshot(
       collection(db, 'upcomingMatches'),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const loadedUpcoming: UpcomingMatch[] = snapshot.docs.map(
-            (d) => d.data() as UpcomingMatch
-          );
-          setUpcomingMatches(loadedUpcoming);
-        }
+        const loadedUpcoming: UpcomingMatch[] = snapshot.docs.map(
+          (d) => d.data() as UpcomingMatch
+        );
+        setUpcomingMatches(loadedUpcoming);
       },
       (error) => {
-        console.warn('Firestore upcomingMatches snapshot notice:', error?.message);
+        console.warn('Firestore upcomingMatches listener warning:', error?.message);
       }
     );
 
@@ -157,22 +156,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeHistory = onSnapshot(
       collection(db, 'matchHistory'),
       (snapshot) => {
-        if (!snapshot.empty) {
-          const loadedHistory: MatchHistoryEntry[] = snapshot.docs.map(
-            (d) => d.data() as MatchHistoryEntry
-          );
-          loadedHistory.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          setMatchHistory(loadedHistory);
-        }
+        const loadedHistory: MatchHistoryEntry[] = snapshot.docs.map(
+          (d) => d.data() as MatchHistoryEntry
+        );
+        loadedHistory.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setMatchHistory(loadedHistory);
       },
       (error) => {
-        console.warn('Firestore matchHistory snapshot notice:', error?.message);
+        console.warn('Firestore matchHistory listener warning:', error?.message);
       }
     );
 
-    // 5. Live Match listener
+    // 5. Live Match listener (Global Timer & Score Sync)
     const unsubscribeLiveMatch = onSnapshot(
       doc(db, 'liveMatch', 'current'),
       (snapshotDoc) => {
@@ -181,7 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       },
       (error) => {
-        console.warn('Firestore liveMatch snapshot notice:', error?.message);
+        console.warn('Firestore liveMatch listener warning:', error?.message);
       }
     );
 
@@ -210,7 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ──────────────────────────────────────────────────────────
-  // Firestore Persistence CRUD Actions (Async / Await Guaranteed)
+  // Firestore Persistence CRUD Actions
   // ──────────────────────────────────────────────────────────
 
   const addTeam = async (name: string, shieldUrl?: string): Promise<Team> => {
@@ -235,7 +232,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await setDoc(doc(db, 'teams', newTeam.id), newTeam);
     } catch (err: any) {
-      console.warn('Firestore write notice (salvo localmente):', err?.message);
+      console.warn('Firestore write notice:', err?.message);
     }
     return newTeam;
   };
@@ -302,7 +299,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await setDoc(doc(db, 'players', created.id), created);
     } catch (err: any) {
-      console.warn('Firestore write notice (salvo localmente):', err?.message);
+      console.warn('Firestore write notice:', err?.message);
     }
     return created;
   };
@@ -355,6 +352,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       awayTeam: { name: awayTeam, score: 0, icon: 'shield' },
       status: 'live',
       clock: `${durationMinutes}:00`,
+      durationMinutes,
+      elapsedSeconds: 0,
+      isTimerRunning: true,
+      timerStartedAt: Date.now(),
       venue: 'Quadra Society 01',
       competition: 'Jogo Casual',
       events: [],
@@ -409,6 +410,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       awayTeam: { name: matchToStart.awayTeam, score: 0, icon: 'shield' },
       status: 'live',
       clock: `${durationMins}:00`,
+      durationMinutes: durationMins,
+      elapsedSeconds: 0,
+      isTimerRunning: true,
+      timerStartedAt: Date.now(),
       venue: matchToStart.venue,
       competition: matchToStart.competition,
       events: [],
@@ -427,6 +432,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newMatchId;
   };
 
+  // Real-time Global Timer Sync Methods
+  const toggleLiveTimer = async (): Promise<void> => {
+    if (liveMatch.status !== 'live') return;
+
+    const now = Date.now();
+    let newIsRunning = !liveMatch.isTimerRunning;
+    let newElapsed = liveMatch.elapsedSeconds || 0;
+    let newStartedAt: number | undefined = undefined;
+
+    if (liveMatch.isTimerRunning) {
+      // Pausing: calculate stint elapsed
+      const stint = liveMatch.timerStartedAt ? Math.floor((now - liveMatch.timerStartedAt) / 1000) : 0;
+      newElapsed += stint;
+    } else {
+      // Starting / Resuming
+      newStartedAt = now;
+    }
+
+    const updated: LiveMatchFull = {
+      ...liveMatch,
+      isTimerRunning: newIsRunning,
+      elapsedSeconds: newElapsed,
+      timerStartedAt: newStartedAt,
+    };
+
+    setLiveMatch(updated);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), updated);
+    } catch {}
+  };
+
+  const addExtraTimeToLiveMatch = async (minutes: number): Promise<void> => {
+    const updated: LiveMatchFull = {
+      ...liveMatch,
+      durationMinutes: (liveMatch.durationMinutes || 15) + minutes,
+    };
+    setLiveMatch(updated);
+    try {
+      await setDoc(doc(db, 'liveMatch', 'current'), updated);
+    } catch {}
+  };
+
   const finishLiveMatch = async (): Promise<void> => {
     if (liveMatch.status === 'finished') return;
 
@@ -439,6 +486,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...liveMatch,
       status: 'finished',
       clock: 'FIM DE JOGO',
+      isTimerRunning: false,
     };
 
     setLiveMatch(updatedLiveMatch);
@@ -655,6 +703,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         startUpcomingMatch,
         finishLiveMatch,
         deleteMatchHistoryEntry,
+        toggleLiveTimer,
+        addExtraTimeToLiveMatch,
         addMatchEvent,
         setMatchClockMinutes,
         setUpcomingMatchesList,
