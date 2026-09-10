@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { Confetti } from '../../components/common/Confetti';
 
 type EventType = 'goal' | 'yellow_card' | 'red_card' | 'sub' | 'shot' | 'foul';
 
@@ -30,9 +31,14 @@ export const LiveEventRegistrationPage: React.FC = () => {
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away'>('home');
   const [minute, setMinute] = useState('45');
   const [submitted, setSubmitted] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleRegister = () => {
     if (!selectedType || !selectedPlayer || !minute) return;
+
+    if (selectedType === 'goal') {
+      setShowConfetti(true);
+    }
 
     addMatchEvent({
       type: selectedType,
@@ -45,13 +51,14 @@ export const LiveEventRegistrationPage: React.FC = () => {
     setSubmitted(true);
     setTimeout(() => {
       navigate(-1);
-    }, 1000);
+    }, 1200);
   };
 
   const isFormValid = selectedType && selectedPlayer && minute;
 
   return (
     <main className="flex flex-col relative w-full pt-4 pb-24 bg-slate-50 min-h-screen px-4">
+      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
       <div className="flex flex-col w-full space-y-4 max-w-lg mx-auto">
 
         {/* Nav Header */}

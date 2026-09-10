@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { LiveMatchFull, MatchEvent } from '../../types';
+import { Confetti } from '../../components/common/Confetti';
 
 const eventTypeIcon: Record<string, string> = {
   goal: 'sports_soccer',
@@ -88,6 +89,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
   const [selectedAssistId, setSelectedAssistId] = useState<string>('');
   const [selectedPlayerInId, setSelectedPlayerInId] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
   const homeShield = getTeamShield(liveMatch.homeTeam.name);
@@ -149,6 +151,10 @@ export const LiveMatchDetailsPage: React.FC = () => {
       description: customDesc,
     });
 
+    if (activeAction === 'goal') {
+      setShowConfetti(true);
+    }
+
     const actionName =
       activeAction === 'goal'
         ? 'Gol'
@@ -176,6 +182,7 @@ export const LiveMatchDetailsPage: React.FC = () => {
 
   return (
     <main className="flex flex-col relative w-full pt-4 pb-24 bg-slate-50 min-h-screen px-4">
+      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
       <div className="flex flex-col w-full space-y-4 max-w-lg mx-auto">
 
         {/* Navigation Bar */}

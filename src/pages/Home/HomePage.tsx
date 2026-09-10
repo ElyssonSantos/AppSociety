@@ -153,20 +153,6 @@ export const HomePage: React.FC = () => {
             <p className="text-[12px] font-semibold text-slate-600 leading-tight">Society dos quebrados</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            aria-label="Buscar"
-            className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
-          >
-            <span className="material-symbols-outlined text-[20px] text-slate-600">search</span>
-          </button>
-          <button
-            aria-label="Notificações"
-            className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
-          >
-            <span className="material-symbols-outlined text-[20px] text-slate-600">notifications</span>
-          </button>
-        </div>
       </header>
 
       {/* ── PRÓXIMA PARTIDA / EM ANDAMENTO CARD ── */}
