@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { MatchHistoryEntry } from '../../types';
+import { MatchEvent, MatchHistoryEntry } from '../../types';
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -20,8 +20,9 @@ const HistoryCard: React.FC<{
   entry: MatchHistoryEntry;
   homeShield: string;
   awayShield: string;
+  onEdit: () => void;
   onDelete: () => void;
-}> = ({ entry, homeShield, awayShield, onDelete }) => {
+}> = ({ entry, homeShield, awayShield, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
 
   const winner =
@@ -51,6 +52,16 @@ const HistoryCard: React.FC<{
             <span className="text-[10px] text-white/90 font-bold bg-white/10 px-2 py-0.5 rounded-full border border-white/20 uppercase">
               {entry.competition}
             </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              title="Editar partida e lances"
+              className="w-7 h-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-amber-500 hover:border-amber-400 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[14px]">edit</span>
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -151,6 +162,8 @@ const HistoryCard: React.FC<{
                       ? 'sports_soccer'
                       : ev.type === 'yellow_card' || ev.type === 'red_card'
                       ? 'square'
+                      : ev.type === 'sub'
+                      ? 'swap_horiz'
                       : 'info'}
                   </span>
                 </div>
@@ -171,10 +184,279 @@ const HistoryCard: React.FC<{
   );
 };
 
+// Modal de Edição de Histórico
+const EditMatchHistoryModal: React.FC<{
+  entry: MatchHistoryEntry;
+  onClose: () => void;
+  onSave: (updatedEntry: Partial<MatchHistoryEntry>) => Promise<void>;
+}> = ({ entry, onClose, onSave }) => {
+  const { players } = useApp();
+  const [homeScore, setHomeScore] = useState<number>(entry.homeScore);
+  const [awayScore, setAwayScore] = useState<number>(entry.awayScore);
+  const [events, setEvents] = useState<MatchEvent[]>(entry.events ? [...entry.events] : []);
+  const [saving, setSaving] = useState(false);
+
+  const handleAddEvent = () => {
+    const newEv: MatchEvent = {
+      id: `ev-${Date.now()}`,
+      minute: "1'",
+      type: 'goal',
+      team: 'home',
+      player: players[0]?.name || 'Jogador',
+      description: 'Gol de ' + (players[0]?.name || 'Jogador'),
+    };
+    setEvents((prev) => [newEv, ...prev]);
+  };
+
+  const handleUpdateEvent = (index: number, updatedEv: Partial<MatchEvent>) => {
+    setEvents((prev) =>
+      prev.map((ev, i) => {
+        if (i !== index) return ev;
+        const merged = { ...ev, ...updatedDataDesc(ev, updatedEv) };
+        return merged;
+      })
+    );
+  };
+
+  const updatedDataDesc = (orig: MatchEvent, updated: Partial<MatchEvent>): Partial<MatchEvent> => {
+    const nextType = updated.type ?? orig.type;
+    const nextPlayer = updated.player ?? orig.player;
+    const nextAssist = updated.assist !== undefined ? updated.assist : orig.assist;
+
+    let desc = updated.description ?? orig.description;
+    if (!updated.description) {
+      if (nextType === 'goal') {
+        desc = `Gol de ${nextPlayer}${nextAssist ? ` (Assistência: ${nextAssist})` : ''}`;
+      } else if (nextType === 'yellow_card') {
+        desc = `Cartão amarelo para ${nextPlayer}`;
+      } else if (nextType === 'red_card') {
+        desc = `Cartão vermelho para ${nextPlayer}`;
+      } else if (nextType === 'foul') {
+        desc = `Falta cometida por ${nextPlayer}`;
+      } else if (nextType === 'sub') {
+        desc = `Substituição — entra ${nextPlayer}`;
+      } else {
+        desc = `Lance com ${nextPlayer}`;
+      }
+    }
+    return { ...updated, description: desc };
+  };
+
+  const handleDeleteEvent = (index: number) => {
+    setEvents((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await onSave({
+      homeScore: Math.max(0, homeScore),
+      awayScore: Math.max(0, awayScore),
+      events,
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 my-8 space-y-4 max-h-[90vh] flex flex-col">
+        {/* Header Modal */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+          <div>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+              Editar Histórico de Partida
+            </span>
+            <h3 className="text-base font-extrabold text-slate-900">
+              {entry.homeTeam} vs {entry.awayTeam}
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        {/* Content Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {/* Ajuste de Placar */}
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              Placar Final
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                  {entry.homeTeam} (Mandante)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={homeScore}
+                  onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)}
+                  className="w-full h-10 px-3 rounded-lg bg-white border border-slate-300 text-slate-900 font-bold text-sm focus:outline-none focus:border-slate-900"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                  {entry.awayTeam} (Visitante)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={awayScore}
+                  onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)}
+                  className="w-full h-10 px-3 rounded-lg bg-white border border-slate-300 text-slate-900 font-bold text-sm focus:outline-none focus:border-slate-900"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Lances / Eventos da Partida */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Lances da Partida ({events.length})
+              </h4>
+              <button
+                type="button"
+                onClick={handleAddEvent}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold text-[11px] flex items-center gap-1 hover:bg-black transition-colors"
+              >
+                <span className="material-symbols-outlined text-[14px]">add</span>
+                <span>Adicionar Lance</span>
+              </button>
+            </div>
+
+            {events.length === 0 ? (
+              <p className="text-xs text-slate-500 italic py-2 text-center">
+                Nenhum lance registrado nesta partida.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {events.map((ev, index) => (
+                  <div
+                    key={ev.id || index}
+                    className="p-3 rounded-xl border border-slate-200 bg-white space-y-2 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                      <div className="flex items-center gap-2">
+                        {/* Tipo de Evento */}
+                        <select
+                          value={ev.type}
+                          onChange={(e) =>
+                            handleUpdateEvent(index, {
+                              type: e.target.value as MatchEvent['type'],
+                            })
+                          }
+                          className="px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800"
+                        >
+                          <option value="goal">Gol ⚽</option>
+                          <option value="foul">Falta ⚠️</option>
+                          <option value="yellow_card">Amarelo 🟨</option>
+                          <option value="red_card">Vermelho 🟥</option>
+                          <option value="sub">Substituição 🔄</option>
+                          <option value="shot">Chute a Gol 🎯</option>
+                        </select>
+
+                        {/* Equipe */}
+                        <select
+                          value={ev.team}
+                          onChange={(e) =>
+                            handleUpdateEvent(index, {
+                              team: e.target.value as 'home' | 'away',
+                            })
+                          }
+                          className="px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800"
+                        >
+                          <option value="home">Mandante ({entry.homeTeam})</option>
+                          <option value="away">Visitante ({entry.awayTeam})</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(index)}
+                        title="Remover este lance"
+                        className="w-7 h-7 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Minuto */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block">Minuto</label>
+                        <input
+                          type="text"
+                          value={ev.minute}
+                          onChange={(e) => handleUpdateEvent(index, { minute: e.target.value })}
+                          placeholder="Ex: 15'"
+                          className="w-full h-8 px-2 rounded bg-slate-50 border border-slate-200 text-xs text-slate-900 font-semibold"
+                        />
+                      </div>
+
+                      {/* Autor / Jogador */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block">Jogador</label>
+                        <input
+                          type="text"
+                          value={ev.player}
+                          onChange={(e) => handleUpdateEvent(index, { player: e.target.value })}
+                          placeholder="Nome do jogador"
+                          className="w-full h-8 px-2 rounded bg-slate-50 border border-slate-200 text-xs text-slate-900 font-semibold"
+                        />
+                      </div>
+
+                      {/* Assistência */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block">Assistência (opcional)</label>
+                        <input
+                          type="text"
+                          value={ev.assist || ''}
+                          onChange={(e) => handleUpdateEvent(index, { assist: e.target.value })}
+                          placeholder="Nome da assistência"
+                          className="w-full h-8 px-2 rounded bg-slate-50 border border-slate-200 text-xs text-slate-900 font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex gap-2 pt-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-black transition-colors"
+            >
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export const MatchHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const { matchHistory, deleteMatchHistoryEntry, getTeamShield } = useApp();
+  const { matchHistory, deleteMatchHistoryEntry, updateMatchHistoryEntry, getTeamShield } = useApp();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<MatchHistoryEntry | null>(null);
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
@@ -226,10 +508,22 @@ export const MatchHistoryPage: React.FC = () => {
               entry={entry}
               homeShield={getTeamShield(entry.homeTeam)}
               awayShield={getTeamShield(entry.awayTeam)}
+              onEdit={() => setEditingEntry(entry)}
               onDelete={() => setDeletingId(entry.id)}
             />
           ))}
         </div>
+      )}
+
+      {/* Modal de Edição */}
+      {editingEntry && (
+        <EditMatchHistoryModal
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={async (updatedData) => {
+            await updateMatchHistoryEntry(editingEntry.id, updatedData);
+          }}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

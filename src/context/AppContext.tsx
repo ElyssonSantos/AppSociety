@@ -8,10 +8,8 @@ import {
   deleteDoc,
   getDocs,
   serverTimestamp,
-  arrayUnion,
   increment,
   Timestamp,
-  FieldValue,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LiveMatchFull, MatchEvent, MatchHistoryEntry, Player, Team, UpcomingMatch } from '../types';
@@ -24,6 +22,9 @@ interface AppContextType {
   matchHistory: MatchHistoryEntry[];
   availableClubNames: string[];
   isCreationModalOpen: boolean;
+  serverClockOffset: number;
+  calculateRemainingSeconds: (match: LiveMatchFull, customNowMs?: number) => number;
+  formatMatchClock: (match: LiveMatchFull, customNowMs?: number) => string;
   openCreationModal: () => void;
   closeCreationModal: () => void;
   addTeam: (name: string, shieldUrl?: string) => Promise<Team>;
@@ -37,6 +38,7 @@ interface AppContextType {
   startUpcomingMatch: (matchId: string) => Promise<string>;
   finishLiveMatch: () => Promise<void>;
   deleteMatchHistoryEntry: (id: string) => Promise<void>;
+  updateMatchHistoryEntry: (id: string, updatedData: Partial<MatchHistoryEntry>) => Promise<void>;
   toggleLiveTimer: () => Promise<void>;
   addExtraTimeToLiveMatch: (minutes: number) => Promise<void>;
   addMatchEvent: (event: {
@@ -60,6 +62,20 @@ const LS_UPCOMING = 'mopafut_upcoming_cache';
 const LS_HISTORY = 'mopafut_history_cache';
 const LS_LIVE = 'mopafut_live_cache';
 
+const DEFAULT_IDLE_MATCH: LiveMatchFull = {
+  id: 'live-current',
+  homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
+  awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
+  competition: 'Jogo Casual',
+  venue: 'Quadra Society 01',
+  status: 'finished',
+  clock: '0:00',
+  durationMinutes: 15,
+  elapsedSeconds: 0,
+  isTimerRunning: false,
+  events: [],
+};
+
 const loadFromLS = <T,>(key: string, fallback: T): T => {
   try {
     const item = localStorage.getItem(key);
@@ -75,21 +91,13 @@ const saveToLS = <T,>(key: string, value: T) => {
   } catch { /* ignore */ }
 };
 
-/**
- * Normaliza o campo timerStartedAt de um documento Firestore.
- * O Firestore serverTimestamp() retorna um objeto Timestamp quando lido via onSnapshot.
- * Convertemos para milissegundos (number) para uso no cálculo do cronômetro.
- */
 const normalizeTimerStartedAt = (raw: unknown): number | undefined => {
   if (raw === null || raw === undefined) return undefined;
-  // Objeto Timestamp do Firestore SDK
   if (raw instanceof Timestamp) return raw.toMillis();
-  // Objeto plain com { seconds, nanoseconds } (quando serializado)
   if (typeof raw === 'object' && raw !== null && 'seconds' in raw) {
     const ts = raw as { seconds: number; nanoseconds: number };
     return ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000);
   }
-  // Já é number (legacy / localStorage)
   if (typeof raw === 'number') return raw;
   return undefined;
 };
@@ -98,19 +106,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [liveMatch, setLiveMatch] = useState<LiveMatchFull>(() =>
-    loadFromLS<LiveMatchFull>(LS_LIVE, {
-      id: 'live-current',
-      homeTeam: { name: 'Time Casa', score: 0, icon: 'shield' },
-      awayTeam: { name: 'Time Visitante', score: 0, icon: 'shield' },
-      competition: 'Jogo Casual',
-      venue: 'Quadra Society 01',
-      status: 'finished',
-      clock: '0:00',
-      durationMinutes: 15,
-      elapsedSeconds: 0,
-      isTimerRunning: false,
-      events: [],
-    })
+    loadFromLS<LiveMatchFull>(LS_LIVE, DEFAULT_IDLE_MATCH)
   );
 
   const [upcomingMatches, setUpcomingMatches] = useState<UpcomingMatch[]>(() =>
@@ -126,6 +122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadFromLS<MatchHistoryEntry[]>(LS_HISTORY, [])
   );
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
+  const [serverClockOffset, setServerClockOffset] = useState<number>(0);
 
   // Sync local state to localStorage as secondary fallback
   useEffect(() => { saveToLS(LS_TEAMS, teams); }, [teams]);
@@ -194,15 +191,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // 5. Live Match listener — Sincronização Global de Gols, Eventos e Cronômetro
-    // O onSnapshot é disparado em TODOS os clientes conectados sempre que o
-    // documento for modificado via updateDoc/setDoc em qualquer dispositivo.
     const unsubscribeLiveMatch = onSnapshot(
       doc(db, 'liveMatch', 'current'),
       (snapshotDoc) => {
         if (snapshotDoc.exists()) {
           const data = snapshotDoc.data();
-          // Normaliza timerStartedAt: converte Timestamp Firestore → number (ms)
-          // para que o calculateRemainingSeconds funcione corretamente em todos os clientes.
+
+          // Calcula o offset entre o relógio do servidor e o dispositivo local para eliminar delay de 30s
+          const rawUpdatedAt = data.updatedAt;
+          let offset = 0;
+          if (rawUpdatedAt instanceof Timestamp) {
+            offset = rawUpdatedAt.toMillis() - Date.now();
+          } else if (typeof rawUpdatedAt === 'object' && rawUpdatedAt !== null && 'seconds' in rawUpdatedAt) {
+            const ts = rawUpdatedAt as { seconds: number; nanoseconds: number };
+            offset = (ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000)) - Date.now();
+          }
+          setServerClockOffset(offset);
+
           const normalized: LiveMatchFull = {
             ...(data as LiveMatchFull),
             timerStartedAt: normalizeTimerStartedAt(data.timerStartedAt),
@@ -237,6 +242,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     if (t?.shieldUrl) return t.shieldUrl;
     return DEFAULT_FALLBACK_IMAGE;
+  };
+
+  // Helper: Cálculo de segundos restantes compensado por offset de relógio do servidor
+  const calculateRemainingSeconds = (match: LiveMatchFull, customNowMs?: number): number => {
+    const totalSecs = (match.durationMinutes || 15) * 60;
+    let elapsed = match.elapsedSeconds || 0;
+    if (match.isTimerRunning && match.timerStartedAt) {
+      const now = (customNowMs ?? Date.now()) + serverClockOffset;
+      const currentStintSecs = Math.floor((now - match.timerStartedAt) / 1000);
+      elapsed += currentStintSecs;
+    }
+    return Math.max(0, totalSecs - elapsed);
+  };
+
+  const formatMatchClock = (match: LiveMatchFull, customNowMs?: number): string => {
+    if (match.status === 'finished') return '00:00';
+    const secs = calculateRemainingSeconds(match, customNowMs);
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   // ──────────────────────────────────────────────────────────
@@ -282,14 +307,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteTeam = async (id: string): Promise<void> => {
+    const teamToDelete = teams.find((t) => t.id === id);
+    const teamNameLower = teamToDelete ? teamToDelete.name.toLowerCase().trim() : '';
+
+    // 1. Exclui a equipe localmente e no Firestore
     setTeams((prev) => prev.filter((t) => t.id !== id));
-    setPlayers((prev) =>
-      prev.map((p) => (p.teamId === id ? { ...p, teamId: undefined } : p))
-    );
     try {
       await deleteDoc(doc(db, 'teams', id));
     } catch (err: any) {
-      console.warn('Firestore delete notice:', err?.message);
+      console.warn('Firestore delete team notice:', err?.message);
+    }
+
+    // 2. Limpa teamId dos atletas que pertenciam a este time
+    setPlayers((prev) =>
+      prev.map((p) => (p.teamId === id ? { ...p, teamId: undefined } : p))
+    );
+    const affectedPlayers = players.filter((p) => p.teamId === id);
+    for (const p of affectedPlayers) {
+      try {
+        await updateDoc(doc(db, 'players', p.id), { teamId: null });
+      } catch {}
+    }
+
+    if (teamNameLower) {
+      // 3. Remove partidas agendadas (próximas) envolvendo esta equipe
+      const remainingUpcoming = upcomingMatches.filter((m) => {
+        const h = m.homeTeam.toLowerCase().trim();
+        const a = m.awayTeam.toLowerCase().trim();
+        return h !== teamNameLower && a !== teamNameLower;
+      });
+
+      const removedUpcoming = upcomingMatches.filter((m) => {
+        const h = m.homeTeam.toLowerCase().trim();
+        const a = m.awayTeam.toLowerCase().trim();
+        return h === teamNameLower || a === teamNameLower;
+      });
+
+      setUpcomingMatches(remainingUpcoming);
+      for (const m of removedUpcoming) {
+        try {
+          await deleteDoc(doc(db, 'upcomingMatches', m.id));
+        } catch {}
+      }
+
+      // 4. Se a partida ao vivo envolver esta equipe, reinicia para estado inativo
+      const liveHomeLower = liveMatch.homeTeam.name.toLowerCase().trim();
+      const liveAwayLower = liveMatch.awayTeam.name.toLowerCase().trim();
+      if (liveHomeLower === teamNameLower || liveAwayLower === teamNameLower) {
+        setLiveMatch(DEFAULT_IDLE_MATCH);
+        try {
+          await setDoc(doc(db, 'liveMatch', 'current'), {
+            ...DEFAULT_IDLE_MATCH,
+            updatedAt: serverTimestamp(),
+          });
+        } catch {}
+      }
+
+      // 5. Remove do histórico de partidas e dos logs todas as partidas desta equipe
+      const remainingHistory = matchHistory.filter((h) => {
+        const home = h.homeTeam.toLowerCase().trim();
+        const away = h.awayTeam.toLowerCase().trim();
+        return home !== teamNameLower && away !== teamNameLower;
+      });
+
+      const removedHistory = matchHistory.filter((h) => {
+        const home = h.homeTeam.toLowerCase().trim();
+        const away = h.awayTeam.toLowerCase().trim();
+        return home === teamNameLower || away === teamNameLower;
+      });
+
+      setMatchHistory(remainingHistory);
+      for (const h of removedHistory) {
+        try {
+          await deleteDoc(doc(db, 'matchHistory', h.id));
+        } catch {}
+      }
     }
   };
 
@@ -365,11 +457,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deletePlayer = async (id: string): Promise<void> => {
+    const playerToDelete = players.find((p) => p.id === id);
+    const playerNameLower = playerToDelete ? playerToDelete.name.toLowerCase().trim() : '';
+
+    // 1. Exclui o atleta localmente e no Firestore
     setPlayers((prev) => prev.filter((p) => p.id !== id));
     try {
       await deleteDoc(doc(db, 'players', id));
     } catch (err: any) {
-      console.warn('Firestore delete notice:', err?.message);
+      console.warn('Firestore delete player notice:', err?.message);
+    }
+
+    // 2. Remove o atleta da lista de elenco em todos os clubes
+    for (const t of teams) {
+      if (t.players.includes(id)) {
+        const updatedPlayersList = t.players.filter((pid) => pid !== id);
+        setTeams((prevTeams) =>
+          prevTeams.map((teamItem) =>
+            teamItem.id === t.id ? { ...teamItem, players: updatedPlayersList } : teamItem
+          )
+        );
+        try {
+          await updateDoc(doc(db, 'teams', t.id), { players: updatedPlayersList });
+        } catch {}
+      }
+    }
+
+    if (playerNameLower) {
+      const isPlayerInEvent = (ev: MatchEvent) => {
+        const pName = (ev.player || '').toLowerCase().trim();
+        const aName = (ev.assist || '').toLowerCase().trim();
+        return pName === playerNameLower || aName === playerNameLower || ev.player === id;
+      };
+
+      // 3. Remove eventos deste atleta da partida ao vivo em andamento
+      const hasLiveMatchPlayerEvent = liveMatch.events.some(isPlayerInEvent);
+      if (hasLiveMatchPlayerEvent) {
+        const filteredEvents = liveMatch.events.filter((ev) => !isPlayerInEvent(ev));
+        const updatedLive = { ...liveMatch, events: filteredEvents };
+        setLiveMatch(updatedLive);
+        try {
+          await setDoc(doc(db, 'liveMatch', 'current'), {
+            ...updatedLive,
+            updatedAt: serverTimestamp(),
+          });
+        } catch {}
+      }
+
+      // 4. Limpa eventos deste atleta no histórico de partidas e logs
+      const updatedHistory = matchHistory.map((entry) => {
+        const hasPlayerEvents = entry.events.some(isPlayerInEvent);
+        if (!hasPlayerEvents) return entry;
+        const cleanEvents = entry.events.filter((ev) => !isPlayerInEvent(ev));
+        return { ...entry, events: cleanEvents };
+      });
+
+      setMatchHistory(updatedHistory);
+      for (const entry of updatedHistory) {
+        const original = matchHistory.find((h) => h.id === entry.id);
+        if (original && original.events.length !== entry.events.length) {
+          try {
+            await setDoc(doc(db, 'matchHistory', entry.id), entry);
+          } catch {}
+        }
+      }
     }
   };
 
@@ -379,9 +530,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     durationMinutes: number
   ): Promise<string> => {
     const newMatchId = `match-${Date.now()}`;
-    // timerStartedAt é gravado como serverTimestamp() para sincronização exata
-    // entre todos os clientes. O onSnapshot normalizará o Timestamp → number.
-    const nowMs = Date.now(); // Fallback local otimista para UI imediata
+    const nowMs = Date.now();
     const newMatchLocal: LiveMatchFull = {
       id: newMatchId,
       homeTeam: { name: homeTeam, score: 0, icon: 'shield' },
@@ -391,7 +540,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       durationMinutes,
       elapsedSeconds: 0,
       isTimerRunning: true,
-      timerStartedAt: nowMs, // Valor local para display imediato
+      timerStartedAt: nowMs,
       venue: 'Quadra Society 01',
       competition: 'Jogo Casual',
       events: [],
@@ -401,10 +550,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closeCreationModal();
 
     try {
-      // No Firestore, grava serverTimestamp() que será normalizado no onSnapshot
       await setDoc(doc(db, 'liveMatch', 'current'), {
         ...newMatchLocal,
-        timerStartedAt: serverTimestamp(), // Timestamp do servidor — fonte de verdade
+        timerStartedAt: nowMs,
+        updatedAt: serverTimestamp(),
       });
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
@@ -454,7 +603,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       durationMinutes: durationMins,
       elapsedSeconds: 0,
       isTimerRunning: true,
-      timerStartedAt: nowMs, // Valor local otimista
+      timerStartedAt: nowMs,
       venue: matchToStart.venue,
       competition: matchToStart.competition,
       events: [],
@@ -467,7 +616,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await deleteDoc(doc(db, 'upcomingMatches', matchId));
       await setDoc(doc(db, 'liveMatch', 'current'), {
         ...newMatchLocal,
-        timerStartedAt: serverTimestamp(), // Timestamp do servidor
+        timerStartedAt: nowMs,
+        updatedAt: serverTimestamp(),
       });
     } catch (err: any) {
       console.warn('Firestore notice:', err?.message);
@@ -476,14 +626,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newMatchId;
   };
 
-  // Real-time Global Timer Sync Methods
-  // ──────────────────────────────────────────────────────────
-  // toggleLiveTimer:
-  //   - Ao PAUSAR: calcula o tempo de jogo acumulado (elapsedSeconds) e grava no Firestore.
-  //     timerStartedAt é limpo (undefined) para indicar que o timer não está rodando.
-  //   - Ao INICIAR/RETOMAR: grava serverTimestamp() como timerStartedAt.
-  //     O cronômetro de cada cliente calcula: elapsed = elapsedSeconds + (now - timerStartedAt)
-  // ──────────────────────────────────────────────────────────
   const toggleLiveTimer = async (): Promise<void> => {
     if (liveMatch.status !== 'live') return;
 
@@ -492,12 +634,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let newElapsed = liveMatch.elapsedSeconds || 0;
 
     if (liveMatch.isTimerRunning && liveMatch.timerStartedAt) {
-      // Pausando: acumula o stint atual
       const stint = Math.floor((now - liveMatch.timerStartedAt) / 1000);
-      newElapsed += stint;
+      newElapsed += Math.max(0, stint);
     }
 
-    // Atualização local otimista
     const updatedLocal: LiveMatchFull = {
       ...liveMatch,
       isTimerRunning: newIsRunning,
@@ -508,21 +648,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(updatedLocal);
 
     try {
-      if (newIsRunning) {
-        // Iniciando: usa serverTimestamp() como fonte de verdade
-        await updateDoc(doc(db, 'liveMatch', 'current'), {
-          isTimerRunning: true,
-          elapsedSeconds: newElapsed,
-          timerStartedAt: serverTimestamp(),
-        });
-      } else {
-        // Pausando: grava tempo acumulado e zera timerStartedAt
-        await updateDoc(doc(db, 'liveMatch', 'current'), {
-          isTimerRunning: false,
-          elapsedSeconds: newElapsed,
-          timerStartedAt: null,
-        });
-      }
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...updatedLocal,
+        timerStartedAt: newIsRunning ? now : null,
+        updatedAt: serverTimestamp(),
+      });
     } catch (err: any) {
       console.warn('Firestore toggleTimer notice:', err?.message);
     }
@@ -530,10 +660,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addExtraTimeToLiveMatch = async (minutes: number): Promise<void> => {
     const newDuration = (liveMatch.durationMinutes || 15) + minutes;
-    setLiveMatch((prev) => ({ ...prev, durationMinutes: newDuration }));
+    const updated = { ...liveMatch, durationMinutes: newDuration };
+    setLiveMatch(updated);
     try {
-      await updateDoc(doc(db, 'liveMatch', 'current'), {
-        durationMinutes: newDuration,
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...updated,
+        updatedAt: serverTimestamp(),
       });
     } catch {}
   };
@@ -551,11 +683,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'finished',
       clock: 'FIM DE JOGO',
       isTimerRunning: false,
+      timerStartedAt: undefined,
     };
 
     setLiveMatch(updatedLiveMatch);
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), updatedLiveMatch);
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...updatedLiveMatch,
+        timerStartedAt: null,
+        updatedAt: serverTimestamp(),
+      });
     } catch {}
 
     // Persist to match history
@@ -637,10 +774,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // addMatchEvent:
-  // Usa updateDoc com arrayUnion para adicionar eventos atomicamente,
-  // evitando sobrescrever mudanças concorrentes de outros clientes.
-  // Para gols, usa increment() para garantir contagem correta mesmo com múltiplos clientes.
+  const updateMatchHistoryEntry = async (
+    id: string,
+    updatedData: Partial<MatchHistoryEntry>
+  ): Promise<void> => {
+    setMatchHistory((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updatedData } : m))
+    );
+    try {
+      await updateDoc(doc(db, 'matchHistory', id), updatedData);
+    } catch (err: any) {
+      console.warn('Firestore updateMatchHistoryEntry notice:', err?.message);
+    }
+  };
+
   const addMatchEvent = async ({
     type,
     team,
@@ -691,7 +838,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: eventDesc,
     };
 
-    // Atualização local otimista para feedback imediato
     const updatedHomeScore =
       team === 'home' && type === 'goal' ? liveMatch.homeTeam.score + 1 : liveMatch.homeTeam.score;
     const updatedAwayScore =
@@ -707,27 +853,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(updatedMatch);
 
     try {
-      // Usa updateDoc com operações atômicas do Firestore:
-      // - arrayUnion: adiciona o evento sem sobrescrever eventos de outros clientes
-      // - increment: incrementa o score atomicamente (evita race condition de gol simultâneo)
-      const firestoreUpdate: Record<string, FieldValue | number> = {
-        events: arrayUnion(newEvent) as FieldValue,
-      };
-
-      if (type === 'goal') {
-        if (team === 'home') {
-          firestoreUpdate['homeTeam.score'] = increment(1);
-        } else {
-          firestoreUpdate['awayTeam.score'] = increment(1);
-        }
-      }
-
-      await updateDoc(doc(db, 'liveMatch', 'current'), firestoreUpdate);
-    } catch {
-      // Fallback: grava o estado completo se updateDoc falhar
-      try {
-        await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
-      } catch {}
+      // Salva estado completo no Firestore notificando instantaneamente todos os dispositivos escutando
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...updatedMatch,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err: any) {
+      console.warn('Firestore addMatchEvent notice:', err?.message);
     }
 
     if (type === 'goal' && scorer) {
@@ -747,13 +879,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setMatchClockMinutes = async (minutes: number): Promise<void> => {
-    const updatedMatch = {
+    const totalSecs = minutes * 60;
+    const matchDurationSecs = (liveMatch.durationMinutes || 15) * 60;
+    const newElapsed = Math.max(0, matchDurationSecs - totalSecs);
+    const now = Date.now();
+
+    const updatedMatch: LiveMatchFull = {
       ...liveMatch,
-      clock: `${minutes}'`,
+      elapsedSeconds: newElapsed,
+      timerStartedAt: liveMatch.isTimerRunning ? now : undefined,
+      clock: `${minutes}:00`,
     };
+
     setLiveMatch(updatedMatch);
+
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...updatedMatch,
+        timerStartedAt: liveMatch.isTimerRunning ? now : null,
+        updatedAt: serverTimestamp(),
+      });
     } catch {}
   };
 
@@ -780,6 +925,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         matchHistory,
         availableClubNames,
         isCreationModalOpen,
+        serverClockOffset,
+        calculateRemainingSeconds,
+        formatMatchClock,
         openCreationModal,
         closeCreationModal,
         addTeam,
@@ -793,6 +941,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         startUpcomingMatch,
         finishLiveMatch,
         deleteMatchHistoryEntry,
+        updateMatchHistoryEntry,
         toggleLiveTimer,
         addExtraTimeToLiveMatch,
         addMatchEvent,

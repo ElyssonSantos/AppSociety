@@ -76,6 +76,8 @@ export const LiveMatchDetailsPage: React.FC = () => {
     toggleLiveTimer,
     addExtraTimeToLiveMatch,
     getTeamShield,
+    calculateRemainingSeconds,
+    formatMatchClock,
   } = useApp();
 
   const [nowMs, setNowMs] = useState<number>(Date.now());

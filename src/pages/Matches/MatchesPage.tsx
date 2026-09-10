@@ -31,6 +31,8 @@ export const MatchesPage: React.FC = () => {
     closeCreationModal,
     getTeamShield,
     startUpcomingMatch,
+    calculateRemainingSeconds,
+    formatMatchClock,
   } = useApp();
 
   const [nowMs, setNowMs] = useState<number>(Date.now());
