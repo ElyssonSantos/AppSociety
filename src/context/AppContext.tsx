@@ -7,6 +7,11 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  serverTimestamp,
+  arrayUnion,
+  increment,
+  Timestamp,
+  FieldValue,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LiveMatchFull, MatchEvent, MatchHistoryEntry, Player, Team, UpcomingMatch } from '../types';
@@ -68,6 +73,25 @@ const saveToLS = <T,>(key: string, value: T) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch { /* ignore */ }
+};
+
+/**
+ * Normaliza o campo timerStartedAt de um documento Firestore.
+ * O Firestore serverTimestamp() retorna um objeto Timestamp quando lido via onSnapshot.
+ * Convertemos para milissegundos (number) para uso no cálculo do cronômetro.
+ */
+const normalizeTimerStartedAt = (raw: unknown): number | undefined => {
+  if (raw === null || raw === undefined) return undefined;
+  // Objeto Timestamp do Firestore SDK
+  if (raw instanceof Timestamp) return raw.toMillis();
+  // Objeto plain com { seconds, nanoseconds } (quando serializado)
+  if (typeof raw === 'object' && raw !== null && 'seconds' in raw) {
+    const ts = raw as { seconds: number; nanoseconds: number };
+    return ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000);
+  }
+  // Já é number (legacy / localStorage)
+  if (typeof raw === 'number') return raw;
+  return undefined;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -169,12 +193,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     );
 
-    // 5. Live Match listener (Global Timer & Score Sync)
+    // 5. Live Match listener — Sincronização Global de Gols, Eventos e Cronômetro
+    // O onSnapshot é disparado em TODOS os clientes conectados sempre que o
+    // documento for modificado via updateDoc/setDoc em qualquer dispositivo.
     const unsubscribeLiveMatch = onSnapshot(
       doc(db, 'liveMatch', 'current'),
       (snapshotDoc) => {
         if (snapshotDoc.exists()) {
-          setLiveMatch(snapshotDoc.data() as LiveMatchFull);
+          const data = snapshotDoc.data();
+          // Normaliza timerStartedAt: converte Timestamp Firestore → number (ms)
+          // para que o calculateRemainingSeconds funcione corretamente em todos os clientes.
+          const normalized: LiveMatchFull = {
+            ...(data as LiveMatchFull),
+            timerStartedAt: normalizeTimerStartedAt(data.timerStartedAt),
+          };
+          setLiveMatch(normalized);
         }
       },
       (error) => {
@@ -346,7 +379,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     durationMinutes: number
   ): Promise<string> => {
     const newMatchId = `match-${Date.now()}`;
-    const newMatch: LiveMatchFull = {
+    // timerStartedAt é gravado como serverTimestamp() para sincronização exata
+    // entre todos os clientes. O onSnapshot normalizará o Timestamp → number.
+    const nowMs = Date.now(); // Fallback local otimista para UI imediata
+    const newMatchLocal: LiveMatchFull = {
       id: newMatchId,
       homeTeam: { name: homeTeam, score: 0, icon: 'shield' },
       awayTeam: { name: awayTeam, score: 0, icon: 'shield' },
@@ -355,17 +391,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       durationMinutes,
       elapsedSeconds: 0,
       isTimerRunning: true,
-      timerStartedAt: Date.now(),
+      timerStartedAt: nowMs, // Valor local para display imediato
       venue: 'Quadra Society 01',
       competition: 'Jogo Casual',
       events: [],
     };
 
-    setLiveMatch(newMatch);
+    setLiveMatch(newMatchLocal);
     closeCreationModal();
 
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+      // No Firestore, grava serverTimestamp() que será normalizado no onSnapshot
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...newMatchLocal,
+        timerStartedAt: serverTimestamp(), // Timestamp do servidor — fonte de verdade
+      });
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
     }
@@ -403,8 +443,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newMatchId = `match-${Date.now()}`;
     const durationMins = parseInt(matchToStart.time) || 15;
+    const nowMs = Date.now();
 
-    const newMatch: LiveMatchFull = {
+    const newMatchLocal: LiveMatchFull = {
       id: newMatchId,
       homeTeam: { name: matchToStart.homeTeam, score: 0, icon: 'shield' },
       awayTeam: { name: matchToStart.awayTeam, score: 0, icon: 'shield' },
@@ -413,18 +454,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       durationMinutes: durationMins,
       elapsedSeconds: 0,
       isTimerRunning: true,
-      timerStartedAt: Date.now(),
+      timerStartedAt: nowMs, // Valor local otimista
       venue: matchToStart.venue,
       competition: matchToStart.competition,
       events: [],
     };
 
-    setLiveMatch(newMatch);
+    setLiveMatch(newMatchLocal);
     setUpcomingMatches((prev) => prev.filter((m) => m.id !== matchId));
 
     try {
       await deleteDoc(doc(db, 'upcomingMatches', matchId));
-      await setDoc(doc(db, 'liveMatch', 'current'), newMatch);
+      await setDoc(doc(db, 'liveMatch', 'current'), {
+        ...newMatchLocal,
+        timerStartedAt: serverTimestamp(), // Timestamp do servidor
+      });
     } catch (err: any) {
       console.warn('Firestore notice:', err?.message);
     }
@@ -433,44 +477,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Real-time Global Timer Sync Methods
+  // ──────────────────────────────────────────────────────────
+  // toggleLiveTimer:
+  //   - Ao PAUSAR: calcula o tempo de jogo acumulado (elapsedSeconds) e grava no Firestore.
+  //     timerStartedAt é limpo (undefined) para indicar que o timer não está rodando.
+  //   - Ao INICIAR/RETOMAR: grava serverTimestamp() como timerStartedAt.
+  //     O cronômetro de cada cliente calcula: elapsed = elapsedSeconds + (now - timerStartedAt)
+  // ──────────────────────────────────────────────────────────
   const toggleLiveTimer = async (): Promise<void> => {
     if (liveMatch.status !== 'live') return;
 
     const now = Date.now();
-    let newIsRunning = !liveMatch.isTimerRunning;
+    const newIsRunning = !liveMatch.isTimerRunning;
     let newElapsed = liveMatch.elapsedSeconds || 0;
-    let newStartedAt: number | undefined = undefined;
 
-    if (liveMatch.isTimerRunning) {
-      // Pausing: calculate stint elapsed
-      const stint = liveMatch.timerStartedAt ? Math.floor((now - liveMatch.timerStartedAt) / 1000) : 0;
+    if (liveMatch.isTimerRunning && liveMatch.timerStartedAt) {
+      // Pausando: acumula o stint atual
+      const stint = Math.floor((now - liveMatch.timerStartedAt) / 1000);
       newElapsed += stint;
-    } else {
-      // Starting / Resuming
-      newStartedAt = now;
     }
 
-    const updated: LiveMatchFull = {
+    // Atualização local otimista
+    const updatedLocal: LiveMatchFull = {
       ...liveMatch,
       isTimerRunning: newIsRunning,
       elapsedSeconds: newElapsed,
-      timerStartedAt: newStartedAt,
+      timerStartedAt: newIsRunning ? now : undefined,
     };
 
-    setLiveMatch(updated);
+    setLiveMatch(updatedLocal);
+
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), updated);
-    } catch {}
+      if (newIsRunning) {
+        // Iniciando: usa serverTimestamp() como fonte de verdade
+        await updateDoc(doc(db, 'liveMatch', 'current'), {
+          isTimerRunning: true,
+          elapsedSeconds: newElapsed,
+          timerStartedAt: serverTimestamp(),
+        });
+      } else {
+        // Pausando: grava tempo acumulado e zera timerStartedAt
+        await updateDoc(doc(db, 'liveMatch', 'current'), {
+          isTimerRunning: false,
+          elapsedSeconds: newElapsed,
+          timerStartedAt: null,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Firestore toggleTimer notice:', err?.message);
+    }
   };
 
   const addExtraTimeToLiveMatch = async (minutes: number): Promise<void> => {
-    const updated: LiveMatchFull = {
-      ...liveMatch,
-      durationMinutes: (liveMatch.durationMinutes || 15) + minutes,
-    };
-    setLiveMatch(updated);
+    const newDuration = (liveMatch.durationMinutes || 15) + minutes;
+    setLiveMatch((prev) => ({ ...prev, durationMinutes: newDuration }));
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), updated);
+      await updateDoc(doc(db, 'liveMatch', 'current'), {
+        durationMinutes: newDuration,
+      });
     } catch {}
   };
 
@@ -573,6 +637,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // addMatchEvent:
+  // Usa updateDoc com arrayUnion para adicionar eventos atomicamente,
+  // evitando sobrescrever mudanças concorrentes de outros clientes.
+  // Para gols, usa increment() para garantir contagem correta mesmo com múltiplos clientes.
   const addMatchEvent = async ({
     type,
     team,
@@ -623,6 +691,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: eventDesc,
     };
 
+    // Atualização local otimista para feedback imediato
     const updatedHomeScore =
       team === 'home' && type === 'goal' ? liveMatch.homeTeam.score + 1 : liveMatch.homeTeam.score;
     const updatedAwayScore =
@@ -636,21 +705,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setLiveMatch(updatedMatch);
+
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
-    } catch {}
+      // Usa updateDoc com operações atômicas do Firestore:
+      // - arrayUnion: adiciona o evento sem sobrescrever eventos de outros clientes
+      // - increment: incrementa o score atomicamente (evita race condition de gol simultâneo)
+      const firestoreUpdate: Record<string, FieldValue | number> = {
+        events: arrayUnion(newEvent) as FieldValue,
+      };
+
+      if (type === 'goal') {
+        if (team === 'home') {
+          firestoreUpdate['homeTeam.score'] = increment(1);
+        } else {
+          firestoreUpdate['awayTeam.score'] = increment(1);
+        }
+      }
+
+      await updateDoc(doc(db, 'liveMatch', 'current'), firestoreUpdate);
+    } catch {
+      // Fallback: grava o estado completo se updateDoc falhar
+      try {
+        await setDoc(doc(db, 'liveMatch', 'current'), updatedMatch);
+      } catch {}
+    }
 
     if (type === 'goal' && scorer) {
       try {
         await updateDoc(doc(db, 'players', scorer.id), {
-          goals: (scorer.goals || 0) + 1,
+          goals: increment(1),
         });
       } catch {}
     }
     if (type === 'goal' && assistPlayer) {
       try {
         await updateDoc(doc(db, 'players', assistPlayer.id), {
-          assists: (assistPlayer.assists || 0) + 1,
+          assists: increment(1),
         });
       } catch {}
     }

@@ -1,4 +1,4 @@
-import React, { useState, DragEvent, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface FormationPlayer {
   id: string;
@@ -66,11 +66,13 @@ const OPPONENT_ROWS: FormationPlayer[][] = [
 
 type FormationKey = keyof typeof DEFAULT_FORMATIONS;
 
-type DragData = {
+/** Dados carregados durante o arraste via Pointer Events */
+interface DragState {
   fromRow: number;
   fromIndex: number;
   player: FormationPlayer;
-} | null;
+  pointerId: number;
+}
 
 const LS_KEY = (key: string) => `tactics_formation_v2_${key}`;
 
@@ -91,14 +93,22 @@ export const TacticsPage: React.FC = () => {
   }, []);
 
   const [formation, setFormation] = useState(() => getInitialFormation('2-3-1'));
-  const [dragData, setDragData] = useState<DragData>(null);
+  /** Índice de destino do hover durante o arraste { row, index } */
   const [dragOver, setDragOver] = useState<{ row: number; index: number } | null>(null);
-  const touchDragRef = useRef<{ fromRow: number; fromIndex: number; player: FormationPlayer; currentTarget: HTMLElement | null } | null>(null);
+  /** Estado ativo de arraste */
+  const dragStateRef = useRef<DragState | null>(null);
+  /** Menu de contexto para definir goleiro */
+  const [contextMenu, setContextMenu] = useState<{
+    row: number;
+    index: number;
+    player: FormationPlayer;
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     const newF = getInitialFormation(formationKey);
     setFormation(newF);
-    setDragData(null);
     setDragOver(null);
   }, [formationKey, getInitialFormation]);
 
@@ -114,133 +124,167 @@ export const TacticsPage: React.FC = () => {
     persistFormation(formationKey, defaultF.own);
   };
 
-  const handleDragStart = (e: DragEvent, row: number, index: number, player: FormationPlayer) => {
-    setDragData({ fromRow: row, fromIndex: index, player });
-    e.dataTransfer.effectAllowed = 'move';
+  const handleFormationChange = (key: FormationKey) => {
+    setFormationKey(key);
   };
 
-  const handleDragOver = (e: DragEvent, row: number, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOver({ row, index });
+  // ─────────────────────────────────────────────────────────────────────────
+  // Drag & Drop via Pointer Events
+  // Funciona nativamente em desktop (mouse) e mobile (touch/stylus)
+  // sem precisar de biblioteca externa.
+  //
+  // Fluxo:
+  //   onPointerDown → captura ponteiro (setPointerCapture) → inicia dragStateRef
+  //   onPointerMove → detecta alvo via elementFromPoint → atualiza dragOver
+  //   onPointerUp   → conclui swap ou cancela
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const handlePointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    row: number,
+    index: number,
+    player: FormationPlayer
+  ) => {
+    // Captura o ponteiro para continuar recebendo eventos mesmo fora do elemento
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    dragStateRef.current = { fromRow: row, fromIndex: index, player, pointerId: e.pointerId };
+    // Fecha menu de contexto ao iniciar arraste
+    setContextMenu(null);
   };
 
-  const handleDragLeave = () => {
-    setDragOver(null);
-  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current) return;
+    // Lê o elemento sob o ponto atual do ponteiro
+    // releasePointerCapture temporariamente para usar elementFromPoint
+    const target = e.currentTarget as HTMLDivElement;
+    target.releasePointerCapture(e.pointerId);
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    target.setPointerCapture(e.pointerId);
 
-  const handleDrop = (e: DragEvent, toRow: number, toIndex: number) => {
-    e.preventDefault();
-    if (!dragData) return;
+    if (!el) {
+      setDragOver(null);
+      return;
+    }
 
-    const newFormation = formation.own.map((row: FormationPlayer[]) =>
-      row.map((player: FormationPlayer) => ({ ...player }))
-    );
-
-    const temp = newFormation[toRow][toIndex];
-    newFormation[toRow][toIndex] = dragData.player;
-    newFormation[dragData.fromRow][dragData.fromIndex] = temp;
-
-    const updated = { ...formation, own: newFormation };
-    setFormation(updated);
-    persistFormation(formationKey, newFormation);
-    setDragData(null);
-    setDragOver(null);
-  };
-
-  const handleDragEnd = () => {
-    setDragData(null);
-    setDragOver(null);
-  };
-
-  const handleTouchStart = (row: number, index: number, player: FormationPlayer, e: React.TouchEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    touchDragRef.current = { fromRow: row, fromIndex: index, player, currentTarget: target };
-    setDragData({ fromRow: row, fromIndex: index, player });
-    target.classList.add('scale-125', 'z-50', 'shadow-2xl');
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchDragRef.current) return;
-    const touch = e.touches[0];
-    const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-    const dropTarget = elements.find((el) => el.hasAttribute('data-droppable'));
-    if (dropTarget) {
-      const row = parseInt(dropTarget.getAttribute('data-row') || '0', 10);
-      const index = parseInt(dropTarget.getAttribute('data-index') || '0', 10);
+    // Busca o ancestral com data-droppable
+    const droppable = el.closest('[data-droppable]') as HTMLElement | null;
+    if (droppable) {
+      const row = parseInt(droppable.dataset.row ?? '0', 10);
+      const index = parseInt(droppable.dataset.index ?? '0', 10);
       setDragOver({ row, index });
     } else {
       setDragOver(null);
     }
   };
 
-  const handleTouchEnd = () => {
-    if (!touchDragRef.current) return;
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current) return;
 
-    if (dragData && dragOver) {
-      const toRow = dragOver.row;
-      const toIndex = dragOver.index;
-      const newFormation = formation.own.map((row: FormationPlayer[]) =>
-        row.map((p: FormationPlayer) => ({ ...p }))
-      );
+    if (dragOver !== null) {
+      const { fromRow, fromIndex } = dragStateRef.current;
+      const { row: toRow, index: toIndex } = dragOver;
 
-      const temp = newFormation[toRow][toIndex];
-      newFormation[toRow][toIndex] = dragData.player;
-      newFormation[dragData.fromRow][dragData.fromIndex] = temp;
+      if (fromRow !== toRow || fromIndex !== toIndex) {
+        const newFormation = formation.own.map((r: FormationPlayer[]) =>
+          r.map((p: FormationPlayer) => ({ ...p }))
+        );
+        const temp = newFormation[toRow][toIndex];
+        newFormation[toRow][toIndex] = { ...dragStateRef.current.player };
+        newFormation[fromRow][fromIndex] = temp;
 
-      const updated = { ...formation, own: newFormation };
-      setFormation(updated);
-      persistFormation(formationKey, newFormation);
+        setFormation((prev) => ({ ...prev, own: newFormation }));
+        persistFormation(formationKey, newFormation);
+      }
     }
 
-    if (touchDragRef.current.currentTarget) {
-      touchDragRef.current.currentTarget.classList.remove('scale-125', 'z-50', 'shadow-2xl');
-    }
-    touchDragRef.current = null;
-    setDragData(null);
+    dragStateRef.current = null;
     setDragOver(null);
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
   };
 
-  const handleFormationChange = (key: FormationKey) => {
-    setFormationKey(key);
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragStateRef.current = null;
+    setDragOver(null);
+    try {
+      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    } catch { /* ignore */ }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Clique simples no ícone do jogador → abre menu de contexto "Definir Goleiro"
+  // ─────────────────────────────────────────────────────────────────────────
+  const handlePlayerClick = (
+    e: React.MouseEvent<HTMLDivElement>,
+    row: number,
+    index: number,
+    player: FormationPlayer
+  ) => {
+    e.stopPropagation();
+    // Calcula posição do menu próximo ao clique
+    setContextMenu({ row, index, player, x: e.clientX, y: e.clientY });
+  };
+
+  const handleSetGoalkeeper = (row: number, index: number) => {
+    const newFormation = formation.own.map((r: FormationPlayer[]) =>
+      r.map((p: FormationPlayer) => ({ ...p, isGoalkeeper: false }))
+    );
+    newFormation[row][index] = {
+      ...newFormation[row][index],
+      isGoalkeeper: true,
+    };
+    setFormation((prev) => ({ ...prev, own: newFormation }));
+    persistFormation(formationKey, newFormation);
+    setContextMenu(null);
+  };
+
+  const handleRemoveGoalkeeper = (row: number, index: number) => {
+    const newFormation = formation.own.map((r: FormationPlayer[]) =>
+      r.map((p: FormationPlayer) => ({ ...p }))
+    );
+    newFormation[row][index] = {
+      ...newFormation[row][index],
+      isGoalkeeper: false,
+    };
+    setFormation((prev) => ({ ...prev, own: newFormation }));
+    persistFormation(formationKey, newFormation);
+    setContextMenu(null);
+  };
+
+  // Fecha menu ao clicar fora
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = () => setContextMenu(null);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [contextMenu]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Sub-componente de nó de jogador (estático, sem lógica de drag)
+  // ─────────────────────────────────────────────────────────────────────────
   const PlayerNode: React.FC<{
     label: string;
     isGoalkeeper?: boolean;
     isOpponent?: boolean;
-    draggable?: boolean;
-    onDragStart?: (e: DragEvent) => void;
-    onTouchStart?: (e: React.TouchEvent) => void;
     isDragOver?: boolean;
-  }> = ({
-    label,
-    isGoalkeeper = false,
-    isOpponent = false,
-    draggable = true,
-    onDragStart,
-    onTouchStart,
-    isDragOver = false,
-  }) => (
+    isDragging?: boolean;
+  }> = ({ label, isGoalkeeper = false, isOpponent = false, isDragOver = false, isDragging = false }) => (
     <div
-      className={`flex flex-col items-center gap-0.5 ${
-        isDragOver ? 'scale-125' : ''
-      } transition-transform duration-150 select-none`}
+      className={`flex flex-col items-center gap-0.5 transition-transform duration-150 select-none
+        ${isDragOver ? 'scale-125' : ''}
+        ${isDragging ? 'opacity-50' : ''}
+      `}
     >
       <div
-        draggable={draggable}
-        onDragStart={onDragStart}
-        onTouchStart={onTouchStart}
-        onDragEnd={handleDragEnd}
-        className={`w-10 h-10 rounded-full font-extrabold flex items-center justify-center text-xs shadow-lg transition-all cursor-grab active:cursor-grabbing active:scale-110
-          ${isDragOver ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-emerald-900 scale-125' : ''}
+        className={`w-10 h-10 rounded-full font-extrabold flex items-center justify-center text-xs shadow-lg transition-all
+          ${isDragOver ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-emerald-900 scale-110' : ''}
           ${
             isOpponent
               ? 'bg-slate-800 ring-2 ring-slate-600 text-white'
               : isGoalkeeper
               ? 'bg-amber-500 ring-2 ring-amber-300 text-white'
               : 'bg-slate-900 ring-2 ring-white text-white'
-          }`}
+          }
+        `}
       >
         <span
           className="material-symbols-outlined text-[18px]"
@@ -259,7 +303,10 @@ export const TacticsPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
+    <div
+      className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4"
+      onClick={() => setContextMenu(null)}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -282,10 +329,13 @@ export const TacticsPage: React.FC = () => {
 
       {/* Tactical Pitch — Society 7v7 */}
       <div
-        className="relative w-full rounded-3xl border-2 border-emerald-800 shadow-xl overflow-hidden touch-none select-none"
+        className="relative w-full rounded-3xl border-2 border-emerald-800 shadow-xl overflow-hidden select-none"
         style={{
           background: 'radial-gradient(ellipse at 50% 50%, #15803d 0%, #166534 60%, #14532d 100%)',
           minHeight: '440px',
+          // touch-action: none no container garante que o scroll da página
+          // não interfira no arraste dos jogadores em dispositivos móveis
+          touchAction: 'none',
         }}
       >
         {/* SVG Campo */}
@@ -308,7 +358,7 @@ export const TacticsPage: React.FC = () => {
         {/* Conteúdo dentro do campo */}
         <div className="relative z-10 flex flex-col justify-between h-full py-5 px-2" style={{ minHeight: '440px' }}>
 
-          {/* ADVERSÁRIOS (topo) */}
+          {/* ADVERSÁRIOS (topo) — não arrastáveis */}
           <div className="flex flex-col gap-3">
             {OPPONENT_ROWS.map((row, ri) => (
               <div key={ri} className="flex justify-around px-4">
@@ -322,41 +372,86 @@ export const TacticsPage: React.FC = () => {
           {/* Separador visual centro */}
           <div className="h-px bg-white/0 my-1" />
 
-          {/* TIME PRÓPRIO (baixo) */}
+          {/* TIME PRÓPRIO (baixo) — arrastável via Pointer Events */}
           <div className="flex flex-col gap-3">
             {formation.own.map((row, ri) => (
               <div key={ri} className="flex justify-around px-4">
-                {row.map((player: FormationPlayer, pi: number) => (
-                  <div
-                    key={player.id || `${ri}-${pi}`}
-                    data-droppable="true"
-                    data-row={ri}
-                    data-index={pi}
-                    onDragOver={(e) => handleDragOver(e, ri, pi)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, ri, pi)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    className={`transition-transform duration-150 p-1 rounded-xl cursor-grab active:cursor-grabbing ${
-                      dragOver?.row === ri && dragOver?.index === pi ? 'bg-amber-400/20 ring-2 ring-amber-400 scale-110' : ''
-                    }`}
-                  >
-                    <PlayerNode
-                      label={player.name}
-                      isGoalkeeper={player.isGoalkeeper}
-                      draggable={true}
-                      onDragStart={(e) => handleDragStart(e, ri, pi, player)}
-                      onTouchStart={(e) => handleTouchStart(ri, pi, player, e)}
-                      isDragOver={dragOver?.row === ri && dragOver?.index === pi}
-                    />
-                  </div>
-                ))}
+                {row.map((player: FormationPlayer, pi: number) => {
+                  const isDragOver = dragOver?.row === ri && dragOver?.index === pi;
+                  const isDragging =
+                    dragStateRef.current?.fromRow === ri && dragStateRef.current?.fromIndex === pi;
+
+                  return (
+                    <div
+                      key={player.id || `${ri}-${pi}`}
+                      data-droppable="true"
+                      data-row={ri}
+                      data-index={pi}
+                      // Pointer Events para drag & drop robusto em desktop e mobile
+                      onPointerDown={(e) => handlePointerDown(e, ri, pi, player)}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerCancel}
+                      // Clique simples → menu de definir goleiro
+                      onClick={(e) => handlePlayerClick(e, ri, pi, player)}
+                      // touch-action: none no elemento evita que o scroll do celular
+                      // cancele o arraste ao tentar mover o jogador
+                      style={{ touchAction: 'none', cursor: 'grab' }}
+                      className={`transition-transform duration-150 p-1 rounded-xl ${
+                        isDragOver ? 'bg-amber-400/20 ring-2 ring-amber-400 scale-110' : ''
+                      }`}
+                    >
+                      <PlayerNode
+                        label={player.name}
+                        isGoalkeeper={player.isGoalkeeper}
+                        isDragOver={isDragOver}
+                        isDragging={isDragging}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
 
         </div>
       </div>
+
+      {/* Menu de Contexto — Definir / Remover Goleiro */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[180px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              {contextMenu.player.name}
+            </span>
+          </div>
+          {contextMenu.player.isGoalkeeper ? (
+            <button
+              onClick={() => handleRemoveGoalkeeper(contextMenu.row, contextMenu.index)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              Remover como Goleiro
+            </button>
+          ) : (
+            <button
+              onClick={() => handleSetGoalkeeper(contextMenu.row, contextMenu.index)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-50 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              </svg>
+              Definir como Goleiro
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Seleção de Formação */}
       <div>
@@ -396,9 +491,11 @@ export const TacticsPage: React.FC = () => {
 
       {/* Dica de uso */}
       <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center gap-2 shadow-sm">
-        <span className="material-symbols-outlined text-[18px] text-slate-900">drag_click</span>
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4.5 h-4.5 text-slate-900 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+        </svg>
         <p className="text-xs text-slate-700 text-center font-bold">
-          Arraste e solte qualquer jogador do seu time para reposicioná-lo livremente em campo.
+          Arraste para reposicionar. Toque no jogador para definir como Goleiro.
         </p>
       </div>
     </div>
