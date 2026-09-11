@@ -765,6 +765,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         await updateDoc(doc(db, 'teams', team.id), updatedTeamData);
       } catch {}
+
+      // Incrementa o contador de partidas de cada atleta do time
+      const teamPlayers = players.filter((p) => p.teamId === team.id);
+      for (const p of teamPlayers) {
+        try {
+          await updateDoc(doc(db, 'players', p.id), {
+            matches: increment(1),
+          });
+        } catch {}
+      }
     }
   };
 
@@ -856,9 +866,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(updatedMatch);
 
     try {
-      // Salva estado completo no Firestore notificando instantaneamente todos os dispositivos escutando
+      // Salva estado completo no Firestore notificando instantaneamente todos os dispositivos escutando.
+      // timerStartedAt é persistido explicitamente como número (epoch ms) para evitar
+      // problemas de conversão de Timestamp entre dispositivos.
       await setDoc(doc(db, 'liveMatch', 'current'), {
         ...updatedMatch,
+        // Garantir que timerStartedAt seja sempre um número simples, nunca um Timestamp object
+        timerStartedAt: typeof updatedMatch.timerStartedAt === 'number' ? updatedMatch.timerStartedAt : null,
         updatedAt: serverTimestamp(),
       });
     } catch (err: any) {

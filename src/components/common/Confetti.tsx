@@ -35,6 +35,11 @@ export const Confetti: React.FC<ConfettiProps> = ({
   onComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Use a ref for onComplete so it doesn't cause useEffect to re-run on every render
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   useEffect(() => {
     if (!active) return;
@@ -70,13 +75,18 @@ export const Confetti: React.FC<ConfettiProps> = ({
     }));
 
     let animationFrameId: number;
+    let completed = false;
     const startTime = Date.now();
 
     const render = () => {
       const elapsed = Date.now() - startTime;
       if (elapsed > durationMs) {
         ctx.clearRect(0, 0, width, height);
-        if (onComplete) onComplete();
+        if (!completed) {
+          completed = true;
+          // Call via ref to avoid stale closure and avoid deps causing loop
+          onCompleteRef.current?.();
+        }
         return;
       }
 
@@ -134,7 +144,9 @@ export const Confetti: React.FC<ConfettiProps> = ({
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [active, durationMs, onComplete]);
+  // Only re-run when `active` or `durationMs` changes — NOT when onComplete changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, durationMs]);
 
   if (!active) return null;
 
