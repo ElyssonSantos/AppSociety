@@ -216,38 +216,38 @@ export const TacticsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Campo Tático — Arraste Livre 2D Expandido */}
+      {/* Campo Tático — Arraste Livre 2D Expandido Verticalmente (880px) */}
       <div
         ref={pitchRef}
         onPointerMove={handlePointerMove}
         className="relative w-full rounded-3xl border-2 border-emerald-800 shadow-2xl overflow-hidden touch-none"
         style={{
           background: 'radial-gradient(ellipse at 50% 50%, #15803d 0%, #166534 60%, #14532d 100%)',
-          minHeight: '660px',
+          minHeight: '880px',
           touchAction: 'none',
         }}
       >
         {/* SVG Desenho do Campo Futebol Society */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 320 660"
+          viewBox="0 0 320 880"
           preserveAspectRatio="none"
         >
           {/* Bordas e Linhas */}
-          <rect x="15" y="15" width="290" height="630" rx="10" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
+          <rect x="15" y="15" width="290" height="850" rx="12" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
           {/* Linha de Meio Campo */}
-          <line x1="15" y1="330" x2="305" y2="330" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
+          <line x1="15" y1="440" x2="305" y2="440" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
           {/* Círculo Central */}
-          <circle cx="160" cy="330" r="50" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" />
-          <circle cx="160" cy="330" r="4" fill="rgba(255,255,255,0.6)" />
+          <circle cx="160" cy="440" r="55" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" />
+          <circle cx="160" cy="440" r="4" fill="rgba(255,255,255,0.6)" />
 
           {/* Área Superior (Adversário) */}
-          <rect x="75" y="15" width="170" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          <rect x="115" y="15" width="90" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <rect x="75" y="15" width="170" height="120" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+          <rect x="115" y="15" width="90" height="50" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
 
           {/* Área Inferior (Meu Time) */}
-          <rect x="75" y="555" width="170" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          <rect x="115" y="605" width="90" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <rect x="75" y="745" width="170" height="120" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+          <rect x="115" y="815" width="90" height="50" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
         </svg>
 
         {/* Peças / Bonecos Posicionados em 2D Livre */}

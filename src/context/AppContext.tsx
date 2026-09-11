@@ -197,16 +197,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (snapshotDoc.exists()) {
           const data = snapshotDoc.data();
 
-          // Calcula o offset entre o relógio do servidor e o dispositivo local para eliminar delay de 30s
-          const rawUpdatedAt = data.updatedAt;
-          let offset = 0;
-          if (rawUpdatedAt instanceof Timestamp) {
-            offset = rawUpdatedAt.toMillis() - Date.now();
-          } else if (typeof rawUpdatedAt === 'object' && rawUpdatedAt !== null && 'seconds' in rawUpdatedAt) {
-            const ts = rawUpdatedAt as { seconds: number; nanoseconds: number };
-            offset = (ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000)) - Date.now();
+          // Calcula o offset apenas se a gravação já foi finalizada pelo servidor (não pendente local)
+          if (!snapshotDoc.metadata.hasPendingWrites) {
+            const rawUpdatedAt = data.updatedAt;
+            let offset = 0;
+            if (rawUpdatedAt instanceof Timestamp) {
+              offset = rawUpdatedAt.toMillis() - Date.now();
+            } else if (typeof rawUpdatedAt === 'object' && rawUpdatedAt !== null && 'seconds' in rawUpdatedAt) {
+              const ts = rawUpdatedAt as { seconds: number; nanoseconds: number };
+              offset = (ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000)) - Date.now();
+            }
+            setServerClockOffset(offset);
           }
-          setServerClockOffset(offset);
 
           const normalized: LiveMatchFull = {
             ...(data as LiveMatchFull),
@@ -250,7 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let elapsed = match.elapsedSeconds || 0;
     if (match.isTimerRunning && match.timerStartedAt) {
       const now = (customNowMs ?? Date.now()) + serverClockOffset;
-      const currentStintSecs = Math.floor((now - match.timerStartedAt) / 1000);
+      const currentStintSecs = Math.max(0, Math.floor((now - match.timerStartedAt) / 1000));
       elapsed += currentStintSecs;
     }
     return Math.max(0, totalSecs - elapsed);
@@ -546,6 +548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       events: [],
     };
 
+    setServerClockOffset(0);
     setLiveMatch(newMatchLocal);
     closeCreationModal();
 
