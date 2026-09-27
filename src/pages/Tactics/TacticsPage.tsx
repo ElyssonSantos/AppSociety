@@ -83,7 +83,14 @@ type FormationKey = keyof typeof PRESET_FORMATIONS;
 // Chave 100% local do dispositivo no localStorage
 const LS_TACTICS_DEVICE_KEY = 'mopafut_tactics_custom_device_positions_v3';
 
-export const TacticsPage: React.FC = () => {
+import { useApp } from '../../context/AppContext';
+
+export interface TacticsPageProps {
+  isContextual?: boolean;
+}
+
+export const TacticsPage: React.FC<TacticsPageProps> = ({ isContextual = false }) => {
+  const { liveMatch, players: allPlayers, teams } = useApp();
   const [formationKey, setFormationKey] = useState<FormationKey>('2-3-1');
   const pitchRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +118,42 @@ export const TacticsPage: React.FC = () => {
     y: number;
   } | null>(null);
 
+  const homeTeamObj = teams.find(t => t.name === liveMatch.homeTeam?.name);
+  const awayTeamObj = teams.find(t => t.name === liveMatch.awayTeam?.name);
+  useEffect(() => {
+    if (isContextual && liveMatch.status === 'live') {
+      const homePlayers = homeTeamObj ? allPlayers.filter(p => p.teamId === homeTeamObj.id) : [];
+      const awayPlayers = awayTeamObj ? allPlayers.filter(p => p.teamId === awayTeamObj.id) : [];
+      
+      setPieces(prev => {
+        const newPieces = [...prev];
+        let pIdxHome = 0;
+        let pIdxAway = 0;
+        return newPieces.map(piece => {
+          if (piece.team === 'own' && homePlayers[pIdxHome]) {
+            const assignedPlayer = homePlayers[pIdxHome];
+            pIdxHome++;
+            return {
+              ...piece,
+              label: assignedPlayer.name,
+              photoUrl: assignedPlayer.photoUrl
+            } as TacticalPiece & { photoUrl?: string };
+          }
+          if (piece.team === 'opp' && awayPlayers[pIdxAway]) {
+            const assignedPlayer = awayPlayers[pIdxAway];
+            pIdxAway++;
+            return {
+              ...piece,
+              label: assignedPlayer.name,
+              photoUrl: assignedPlayer.photoUrl
+            } as TacticalPiece & { photoUrl?: string };
+          }
+          return piece;
+        });
+      });
+    }
+  }, [isContextual, liveMatch, allPlayers, homeTeamObj, awayTeamObj]);
+
   // Persiste posições estritamente no localStorage local do dispositivo
   const savePiecesToLS = useCallback((currentPieces: TacticalPiece[]) => {
     try {
@@ -121,14 +164,43 @@ export const TacticsPage: React.FC = () => {
   const handleFormationChange = (key: FormationKey) => {
     setFormationKey(key);
     const newPieces = PRESET_FORMATIONS[key].pieces;
-    setPieces(newPieces);
-    savePiecesToLS(newPieces);
+    
+    if (isContextual && liveMatch.status === 'live') {
+      const homePlayers = homeTeamObj ? allPlayers.filter(p => p.teamId === homeTeamObj.id) : [];
+      const awayPlayers = awayTeamObj ? allPlayers.filter(p => p.teamId === awayTeamObj.id) : [];
+      let pIdxHome = 0;
+      let pIdxAway = 0;
+      const contextualPieces = newPieces.map(piece => {
+        if (piece.team === 'own' && homePlayers[pIdxHome]) {
+          const assignedPlayer = homePlayers[pIdxHome];
+          pIdxHome++;
+          return {
+            ...piece,
+            label: assignedPlayer.name,
+            photoUrl: assignedPlayer.photoUrl
+          } as TacticalPiece & { photoUrl?: string };
+        }
+        if (piece.team === 'opp' && awayPlayers[pIdxAway]) {
+          const assignedPlayer = awayPlayers[pIdxAway];
+          pIdxAway++;
+          return {
+            ...piece,
+            label: assignedPlayer.name,
+            photoUrl: assignedPlayer.photoUrl
+          } as TacticalPiece & { photoUrl?: string };
+        }
+        return piece;
+      });
+      setPieces(contextualPieces);
+      savePiecesToLS(contextualPieces);
+    } else {
+      setPieces(newPieces);
+      savePiecesToLS(newPieces);
+    }
   };
 
   const handleReset = () => {
-    const defaultPieces = PRESET_FORMATIONS[formationKey].pieces;
-    setPieces(defaultPieces);
-    savePiecesToLS(defaultPieces);
+    handleFormationChange(formationKey);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -193,28 +265,30 @@ export const TacticsPage: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4 select-none"
+      className={`flex flex-col w-full bg-slate-50 p-4 space-y-4 select-none ${isContextual ? 'pb-4' : 'min-h-screen pb-20'}`}
       onClick={() => setContextMenu(null)}
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-[11px] text-slate-700 uppercase font-extrabold tracking-wider block">
-            Prancheta Digital Privada
-          </span>
-          <h1 className="text-[20px] font-extrabold text-slate-900 tracking-tight">
-            Quadro Tático Interativo
-          </h1>
+      {!isContextual && (
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[11px] text-slate-700 uppercase font-extrabold tracking-wider block">
+              Prancheta Digital Privada
+            </span>
+            <h1 className="text-[20px] font-extrabold text-slate-900 tracking-tight">
+              Quadro Tático Interativo
+            </h1>
+          </div>
+          <button
+            onClick={handleReset}
+            title="Resetar posições aos padrões"
+            className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold shadow-sm hover:bg-slate-100 flex items-center gap-1.5 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+            <span>Resetar</span>
+          </button>
         </div>
-        <button
-          onClick={handleReset}
-          title="Resetar posições aos padrões"
-          className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs text-slate-900 font-bold shadow-sm hover:bg-slate-100 flex items-center gap-1.5 active:scale-95 transition-all"
-        >
-          <span className="material-symbols-outlined text-[18px]">restart_alt</span>
-          <span>Resetar</span>
-        </button>
-      </div>
+      )}
 
       {/* Campo Tático — Arraste Livre 2D Expandido Verticalmente (880px) */}
       <div
@@ -223,35 +297,35 @@ export const TacticsPage: React.FC = () => {
         className="relative w-full rounded-3xl border-2 border-emerald-800 shadow-2xl overflow-hidden touch-none"
         style={{
           background: 'radial-gradient(ellipse at 50% 50%, #15803d 0%, #166534 60%, #14532d 100%)',
-          minHeight: '880px',
+          minHeight: '600px', // Adjusted for mobile view when contextual
           touchAction: 'none',
         }}
       >
         {/* SVG Desenho do Campo Futebol Society */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 320 880"
+          viewBox="0 0 320 600"
           preserveAspectRatio="none"
         >
           {/* Bordas e Linhas */}
-          <rect x="15" y="15" width="290" height="850" rx="12" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
+          <rect x="15" y="15" width="290" height="570" rx="12" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
           {/* Linha de Meio Campo */}
-          <line x1="15" y1="440" x2="305" y2="440" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
+          <line x1="15" y1="300" x2="305" y2="300" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
           {/* Círculo Central */}
-          <circle cx="160" cy="440" r="55" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" />
-          <circle cx="160" cy="440" r="4" fill="rgba(255,255,255,0.6)" />
+          <circle cx="160" cy="300" r="45" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" />
+          <circle cx="160" cy="300" r="4" fill="rgba(255,255,255,0.6)" />
 
           {/* Área Superior (Adversário) */}
-          <rect x="75" y="15" width="170" height="120" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          <rect x="115" y="15" width="90" height="50" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <rect x="75" y="15" width="170" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+          <rect x="115" y="15" width="90" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
 
           {/* Área Inferior (Meu Time) */}
-          <rect x="75" y="745" width="170" height="120" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-          <rect x="115" y="815" width="90" height="50" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
+          <rect x="75" y="495" width="170" height="90" rx="8" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+          <rect x="115" y="545" width="90" height="40" rx="4" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" />
         </svg>
 
         {/* Peças / Bonecos Posicionados em 2D Livre */}
-        {pieces.map((piece) => {
+        {pieces.map((piece: TacticalPiece & { photoUrl?: string }) => {
           const isOwnTeam = piece.team === 'own';
           const isGoalkeeper = piece.isGoalkeeper;
           const isBeingDragged = draggingId === piece.id;
@@ -283,16 +357,20 @@ export const TacticsPage: React.FC = () => {
             >
               {/* Ícone do Jogador / Boneco */}
               <div
-                className={`w-11 h-11 rounded-full font-black flex items-center justify-center text-xs shadow-xl transition-all ${bgColorClass} ${
+                className={`w-11 h-11 rounded-full font-black flex items-center justify-center text-xs shadow-xl transition-all overflow-hidden ${bgColorClass} ${
                   isBeingDragged ? 'ring-4 ring-white ring-offset-2 ring-offset-emerald-900 scale-110' : ''
                 }`}
               >
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  style={{ fontVariationSettings: '"FILL" 1' }}
-                >
-                  {isGoalkeeper ? 'sports_handball' : 'person'}
-                </span>
+                {piece.photoUrl ? (
+                  <img src={piece.photoUrl} alt={piece.label} className="w-full h-full object-cover" />
+                ) : (
+                  <span
+                    className="material-symbols-outlined text-[20px]"
+                    style={{ fontVariationSettings: '"FILL" 1' }}
+                  >
+                    {isGoalkeeper ? 'sports_handball' : 'person'}
+                  </span>
+                )}
               </div>
 
               {/* Rótulo da Posição / Jogador */}

@@ -58,7 +58,7 @@ export const ClubsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
+    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -100,7 +100,8 @@ export const ClubsPage: React.FC = () => {
           teams.map((team) => (
             <div
               key={team.id}
-              className="p-4 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-sm hover:border-[#e63946]/50 transition-colors"
+              onClick={() => navigate(`/clube/${team.id}`)}
+              className="p-4 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-sm hover:border-[#e63946]/50 transition-colors cursor-pointer active:scale-[0.99]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -123,14 +124,14 @@ export const ClubsPage: React.FC = () => {
                 {/* Edit & Delete Actions */}
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={() => handleOpenEdit(team)}
+                    onClick={(e) => { e.stopPropagation(); handleOpenEdit(team); }}
                     title="Editar Equipe"
                     className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors shadow-sm"
                   >
                     <span className="material-symbols-outlined text-[18px]">edit</span>
                   </button>
                   <button
-                    onClick={() => setDeletingTeamId(team.id)}
+                    onClick={(e) => { e.stopPropagation(); setDeletingTeamId(team.id); }}
                     title="Excluir Equipe"
                     className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors shadow-sm"
                   >

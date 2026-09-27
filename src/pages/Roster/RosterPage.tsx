@@ -2,10 +2,14 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Player, SOCIETY_POSITIONS, SocietyPosition } from '../../types';
+import { RankingList } from '../../components/ranking/RankingList';
+
+type RosterTab = 'atletas' | 'ranking';
 
 export const RosterPage: React.FC = () => {
   const navigate = useNavigate();
   const { players, teams, updatePlayer, deletePlayer } = useApp();
+  const [activeTab, setActiveTab] = useState<RosterTab>('atletas');
   const [searchTerm, setSearchTerm] = useState('');
 
   // States for Editing Player Modal
@@ -82,140 +86,168 @@ export const RosterPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-1">
         <div>
-          <span className="text-[11px] text-[#e63946] uppercase font-bold tracking-wider block">
+          <span className="text-[11px] text-[#e63946] uppercase font-extrabold tracking-wider block">
             Futebol Society 7v7
           </span>
-          <h1 className="text-[20px] font-extrabold text-slate-900 tracking-tight">
-            Elenco &amp; Atletas
+          <h1 className="text-[22px] font-black text-slate-900 tracking-tight">
+            Elenco &amp; Ranking
           </h1>
         </div>
         <button
           onClick={() => navigate('/jogador/novo')}
-          className="px-4 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs flex items-center gap-1.5 shadow-md hover:bg-rose-700 active:scale-95 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-500/20 hover:bg-rose-700 active:scale-95 transition-all"
         >
           <span className="material-symbols-outlined text-[18px]">person_add</span>
-          <span>Novo Atleta</span>
+          <span>Atleta</span>
         </button>
       </div>
 
-      {/* Exclusivamente Todos os Atletas Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#e63946] text-[20px]">groups</span>
-          <span className="text-sm font-bold text-slate-900">Todos os Atletas</span>
-        </div>
-        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-          {players.length} Atletas
-        </span>
+      {/* Main Tabs */}
+      <div className="flex bg-white rounded-xl p-1 border border-slate-200 shadow-sm mb-2">
+        <button
+          onClick={() => setActiveTab('atletas')}
+          className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'atletas' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">groups</span>
+          Atletas ({players.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('ranking')}
+          className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'ranking' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">emoji_events</span>
+          Ranking Global
+        </button>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
-          search
-        </span>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Buscar atleta por nome ou posição (Goleiro, Pivô, Ala...)"
-          className="w-full h-11 pl-10 pr-4 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#e63946] transition-colors text-sm shadow-sm"
-        />
-      </div>
+      {activeTab === 'atletas' ? (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Exclusivamente Todos os Atletas Banner */}
+          <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#e63946] text-[20px]">groups</span>
+              <span className="text-sm font-bold text-slate-900">Todos os Atletas</span>
+            </div>
+            <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              {players.length} Atletas
+            </span>
+          </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-            <span className="material-symbols-outlined text-[24px]">person_off</span>
+          {/* Search Input */}
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
+              search
+            </span>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar atleta por nome ou posição..."
+              className="w-full h-11 pl-10 pr-4 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#e63946] transition-colors text-sm shadow-sm"
+            />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              {searchTerm ? `Nenhum atleta encontrado para "${searchTerm}"` : 'Nenhum atleta cadastrado'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs">
-              {searchTerm ? 'Tente buscar por outro nome ou posição.' : 'Cadastre os jogadores do seu time para acompanhar estatísticas e escalar partidas.'}
-            </p>
-          </div>
-          {!searchTerm && (
-            <button
-              onClick={() => navigate('/elencos/novo')}
-              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
-            >
-              + Cadastrar Atleta
-            </button>
+
+          {filtered.length === 0 ? (
+            <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col items-center justify-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                <span className="material-symbols-outlined text-[24px]">person_off</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {searchTerm ? `Nenhum atleta encontrado para "${searchTerm}"` : 'Nenhum atleta cadastrado'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                  {searchTerm ? 'Tente buscar por outro nome ou posição.' : 'Cadastre os jogadores do seu time para acompanhar estatísticas e escalar partidas.'}
+                </p>
+              </div>
+              {!searchTerm && (
+                <button
+                  onClick={() => navigate('/elencos/novo')}
+                  className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+                >
+                  + Cadastrar Atleta
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filtered.map((player) => {
+                const playerTeam = teams.find((t) => t.id === player.teamId);
+
+                return (
+                  <div
+                    key={player.id}
+                    onClick={() => navigate(`/jogador/${player.id}`)}
+                    className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-sm hover:border-[#e63946]/50 hover:bg-rose-50/20 transition-all active:scale-[0.99] cursor-pointer text-left w-full relative group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                        <img
+                          src={player.photoUrl}
+                          alt={player.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://i.imgur.com/vnYcevV.png';
+                          }}
+                        />
+                        <span className="absolute bottom-0 right-0 bg-[#e63946] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                          {player.number}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold text-slate-900 truncate">
+                          {player.name}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#e63946] font-bold">
+                            {player.position}
+                          </span>
+                          {playerTeam && (
+                            <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-slate-600 font-semibold truncate max-w-[100px]">
+                              {playerTeam.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
+                          <span>{player.goals ?? 0} Gols</span>
+                          <span>•</span>
+                          <span>{player.assists ?? 0} Ast</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edit & Delete Action Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => handleOpenEdit(e, player)}
+                        title="Editar Atleta"
+                        className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleOpenDelete(e, player.id)}
+                        title="Excluir Atleta"
+                        className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((player) => {
-            const playerTeam = teams.find((t) => t.id === player.teamId);
-
-            return (
-              <div
-                key={player.id}
-                onClick={() => navigate(`/jogador/${player.id}`)}
-                className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3 shadow-sm hover:border-[#e63946]/50 hover:bg-rose-50/20 transition-all active:scale-[0.99] cursor-pointer text-left w-full relative group"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                    <img
-                      src={player.photoUrl}
-                      alt={player.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
-                      }}
-                    />
-                    <span className="absolute bottom-0 right-0 bg-[#e63946] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                      {player.number}
-                    </span>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold text-slate-900 truncate">
-                      {player.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[#e63946] font-bold">
-                        {player.position}
-                      </span>
-                      {playerTeam && (
-                        <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-slate-600 font-semibold truncate max-w-[100px]">
-                          {playerTeam.name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
-                      <span>{player.goals ?? 0} Gols</span>
-                      <span>•</span>
-                      <span>{player.assists ?? 0} Ast</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Edit & Delete Action Buttons */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={(e) => handleOpenEdit(e, player)}
-                    title="Editar Atleta"
-                    className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">edit</span>
-                  </button>
-                  <button
-                    onClick={(e) => handleOpenDelete(e, player.id)}
-                    title="Excluir Atleta"
-                    className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <RankingList />
       )}
 
       {/* Modal Editar Atleta */}
@@ -247,10 +279,10 @@ export const RosterPage: React.FC = () => {
                   onClick={() => editPhotoInputRef.current?.click()}
                 >
                   <img
-                    src={editPhotoPreview || editPhotoUrl || 'https://i.imgur.com/2dRX6Mh.png'}
+                    src={editPhotoPreview || editPhotoUrl || 'https://i.imgur.com/vnYcevV.png'}
                     alt="Foto"
                     className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png'; }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/vnYcevV.png'; }}
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="material-symbols-outlined text-white text-[22px]">add_a_photo</span>

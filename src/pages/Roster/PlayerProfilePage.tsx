@@ -78,10 +78,10 @@ const PlayerProfilePage: React.FC = () => {
               <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center shadow-lg border-2 border-slate-700">
                 <img
                   className="w-full h-full object-cover object-top"
-                  src={player.photoUrl || "https://i.imgur.com/2dRX6Mh.png"}
+                  src={player.photoUrl || "https://i.imgur.com/vnYcevV.png"}
                   alt={player.name}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
+                    (e.target as HTMLImageElement).src = 'https://i.imgur.com/vnYcevV.png';
                   }}
                 />
               </div>

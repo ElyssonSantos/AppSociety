@@ -35,11 +35,11 @@ export const Confetti: React.FC<ConfettiProps> = ({
   onComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // Use a ref for onComplete so it doesn't cause useEffect to re-run on every render
   const onCompleteRef = useRef(onComplete);
+
   useEffect(() => {
     onCompleteRef.current = onComplete;
-  });
+  }, [onComplete]);
 
   useEffect(() => {
     if (!active) return;
@@ -60,7 +60,6 @@ export const Confetti: React.FC<ConfettiProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // Gera 120 partículas de confete caindo da parte superior da tela
     const particles: Particle[] = Array.from({ length: 120 }, () => ({
       x: Math.random() * width,
       y: Math.random() * (height * 0.4) - 50,
@@ -75,17 +74,15 @@ export const Confetti: React.FC<ConfettiProps> = ({
     }));
 
     let animationFrameId: number;
-    let completed = false;
     const startTime = Date.now();
 
     const render = () => {
       const elapsed = Date.now() - startTime;
       if (elapsed > durationMs) {
         ctx.clearRect(0, 0, width, height);
-        if (!completed) {
-          completed = true;
-          // Call via ref to avoid stale closure and avoid deps causing loop
-          onCompleteRef.current?.();
+        cancelAnimationFrame(animationFrameId);
+        if (onCompleteRef.current) {
+          onCompleteRef.current();
         }
         return;
       }
@@ -97,7 +94,6 @@ export const Confetti: React.FC<ConfettiProps> = ({
         p.y += p.vy;
         p.rotation += p.rotationSpeed;
 
-        // Efeito de desvanecimento suave perto do fim da duração
         if (elapsed > durationMs - 1000) {
           p.opacity = Math.max(0, (durationMs - elapsed) / 1000);
         }
@@ -106,7 +102,6 @@ export const Confetti: React.FC<ConfettiProps> = ({
         ctx.globalAlpha = p.opacity;
         ctx.translate(p.x, p.y);
         ctx.rotate((p.rotation * Math.PI) / 180);
-
         ctx.fillStyle = p.color;
 
         if (p.shape === 'circle') {
@@ -116,7 +111,6 @@ export const Confetti: React.FC<ConfettiProps> = ({
         } else if (p.shape === 'rect') {
           ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
         } else {
-          // Estrela simples
           ctx.beginPath();
           for (let i = 0; i < 5; i++) {
             ctx.lineTo(
@@ -143,9 +137,10 @@ export const Confetti: React.FC<ConfettiProps> = ({
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
+      if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
     };
-  // Only re-run when `active` or `durationMs` changes — NOT when onComplete changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, durationMs]);
 
   if (!active) return null;
@@ -153,7 +148,7 @@ export const Confetti: React.FC<ConfettiProps> = ({
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 z-50 pointer-events-none w-full h-full"
+      className="fixed inset-0 z-[9999] pointer-events-none w-full h-full"
     />
   );
 };

@@ -91,7 +91,7 @@ export const MatchesPage: React.FC = () => {
   const remainingSecs = calculateRemainingSeconds(liveMatch, nowMs);
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
+    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

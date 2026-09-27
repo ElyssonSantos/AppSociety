@@ -8,7 +8,6 @@ import { LiveMatchFull } from '../../types';
 const QUICK_ACTIONS = [
   { id: 'partidas', label: 'Partidas', icon: 'sports_soccer', path: '/partidas' },
   { id: 'elenco', label: 'Cadastrar Elenco', icon: 'group_add', path: '/elencos' },
-  { id: 'tatico', label: 'Quadro Tático', icon: 'strategy', path: '/tatico' },
   { id: 'stats', label: 'Classificação', icon: 'leaderboard', path: '/estatisticas' },
   { id: 'clubes', label: 'Clubes', icon: 'shield', path: '/clubes' },
   { id: 'placar', label: 'Placar Ao Vivo', icon: 'flash_on', path: '/partidas' },

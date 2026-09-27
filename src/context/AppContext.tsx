@@ -54,7 +54,8 @@ interface AppContextType {
   getTeamShield: (teamNameOrId: string) => string;
 }
 
-const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png';
+const DEFAULT_FALLBACK_IMAGE = 'https://i.imgur.com/2dRX6Mh.png'; // Escudo padrão para clubes
+const DEFAULT_PLAYER_IMAGE = 'https://i.imgur.com/vnYcevV.png'; // Avatar padrão para atletas sem foto
 
 const LS_TEAMS = 'mopafut_teams_cache';
 const LS_PLAYERS = 'mopafut_players_cache';
@@ -393,7 +394,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: newPlayerData.name || 'Novo Atleta',
       number: newPlayerData.number || 10,
       position: newPlayerData.position || 'Pivô',
-      photoUrl: newPlayerData.photoUrl || DEFAULT_FALLBACK_IMAGE,
+      photoUrl: newPlayerData.photoUrl || DEFAULT_PLAYER_IMAGE,
       rating: newPlayerData.rating || 8.0,
       goals: 0,
       assists: 0,
@@ -676,13 +677,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const finishLiveMatch = async (): Promise<void> => {
     if (liveMatch.status === 'finished') return;
 
+    // Use events as the absolute source of truth for the score to avoid sync issues
+    let trueHomeScore = 0;
+    let trueAwayScore = 0;
+    liveMatch.events.forEach(ev => {
+      if (ev.type === 'goal') {
+        if (ev.team === 'home') trueHomeScore++;
+        if (ev.team === 'away') trueAwayScore++;
+      }
+    });
+
     const homeName = liveMatch.homeTeam.name;
     const awayName = liveMatch.awayTeam.name;
-    const homeScore = liveMatch.homeTeam.score;
-    const awayScore = liveMatch.awayTeam.score;
+    const homeScore = trueHomeScore;
+    const awayScore = trueAwayScore;
 
     const updatedLiveMatch: LiveMatchFull = {
       ...liveMatch,
+      homeTeam: { ...liveMatch.homeTeam, score: homeScore },
+      awayTeam: { ...liveMatch.awayTeam, score: awayScore },
       status: 'finished',
       clock: 'FIM DE JOGO',
       isTimerRunning: false,
@@ -778,7 +791,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const applyMatchEffects = async (entry: MatchHistoryEntry, reverse: boolean) => {
+    const multiplier = reverse ? -1 : 1;
+    const homeName = entry.homeTeam.toLowerCase();
+    const awayName = entry.awayTeam.toLowerCase();
+
+    // Atualizar times
+    for (const t of teams) {
+      const tName = t.name.toLowerCase();
+      if (tName === homeName || tName === awayName) {
+        const isHome = tName === homeName;
+        const gf = isHome ? entry.homeScore : entry.awayScore;
+        const gc = isHome ? entry.awayScore : entry.homeScore;
+        const diff = gf - gc;
+        
+        let ptsAdd = 0;
+        let winAdd = 0;
+        let drawAdd = 0;
+        let lossAdd = 0;
+        
+        if (gf > gc) { ptsAdd = 3; winAdd = 1; }
+        else if (gf < gc) { ptsAdd = 0; lossAdd = 1; }
+        else { ptsAdd = 1; drawAdd = 1; }
+        
+        try {
+          await updateDoc(doc(db, 'teams', t.id), {
+            played: increment(1 * multiplier),
+            points: increment(ptsAdd * multiplier),
+            wins: increment(winAdd * multiplier),
+            draws: increment(drawAdd * multiplier),
+            losses: increment(lossAdd * multiplier),
+            goalsFor: increment(gf * multiplier),
+            goalsAgainst: increment(gc * multiplier),
+            goalDiff: increment(diff * multiplier)
+          });
+        } catch (err) {
+           console.warn('Erro ao atualizar stats do time:', err);
+        }
+      }
+    }
+
+    // Atualizar stats dos jogadores com base nos eventos
+    if (entry.events) {
+      for (const ev of entry.events) {
+        if (ev.type === 'goal') {
+          const scorer = players.find(p => p.name === ev.player || p.id === ev.player);
+          if (scorer) {
+            try { await updateDoc(doc(db, 'players', scorer.id), { goals: increment(1 * multiplier) }); } catch {}
+          }
+          if (ev.assist) {
+            const assistPlayer = players.find(p => p.name === ev.assist || p.id === ev.assist);
+            if (assistPlayer) {
+              try { await updateDoc(doc(db, 'players', assistPlayer.id), { assists: increment(1 * multiplier) }); } catch {}
+            }
+          }
+        }
+      }
+    }
+
+    // Modificar matches jogados para os elencos daquele jogo
+    const homeTeamId = teams.find(t => t.name.toLowerCase() === homeName)?.id;
+    const awayTeamId = teams.find(t => t.name.toLowerCase() === awayName)?.id;
+    const affectedTeamIds = [homeTeamId, awayTeamId].filter(Boolean);
+    
+    for (const p of players) {
+      if (p.teamId && affectedTeamIds.includes(p.teamId)) {
+        try { await updateDoc(doc(db, 'players', p.id), { matches: increment(1 * multiplier) }); } catch {}
+      }
+    }
+  };
+
   const deleteMatchHistoryEntry = async (id: string): Promise<void> => {
+    const entryToDelete = matchHistory.find((m) => m.id === id);
+    if (entryToDelete) {
+       await applyMatchEffects(entryToDelete, true);
+    }
+    
     setMatchHistory((prev) => prev.filter((m) => m.id !== id));
     try {
       await deleteDoc(doc(db, 'matchHistory', id));
@@ -791,6 +879,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     id: string,
     updatedData: Partial<MatchHistoryEntry>
   ): Promise<void> => {
+    const oldEntry = matchHistory.find((m) => m.id === id);
+    if (oldEntry) {
+       // Reverse old effects
+       await applyMatchEffects(oldEntry, true);
+    }
+
+    const newEntry = { ...oldEntry, ...updatedData } as MatchHistoryEntry;
+    if (oldEntry && Object.keys(updatedData).length > 0) {
+       // Apply new effects
+       await applyMatchEffects(newEntry, false);
+    }
+
     setMatchHistory((prev) =>
       prev.map((m) => (m.id === id ? { ...m, ...updatedData } : m))
     );

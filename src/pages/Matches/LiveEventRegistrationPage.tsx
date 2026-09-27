@@ -163,7 +163,7 @@ export const LiveEventRegistrationPage: React.FC = () => {
                       alt={player.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://i.imgur.com/2dRX6Mh.png';
+                        (e.target as HTMLImageElement).src = 'https://i.imgur.com/vnYcevV.png';
                       }}
                     />
                   </div>

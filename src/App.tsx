@@ -12,6 +12,7 @@ import PlayerProfilePage from './pages/Roster/PlayerProfilePage';
 import PlayerRegistrationPage from './pages/Roster/PlayerRegistrationPage';
 import { ClubsPage } from './pages/Clubs/ClubsPage';
 import { ClubRegistrationPage } from './pages/Clubs/ClubRegistrationPage';
+import { ClubProfilePage } from './pages/Clubs/ClubProfilePage';
 import { StatsPage } from './pages/Stats/StatsPage';
 import { AppProvider } from './context/AppContext';
 
@@ -33,6 +34,7 @@ export const App: React.FC = () => {
             <Route path="jogador/:id" element={<PlayerProfilePage />} />
             <Route path="clubes" element={<ClubsPage />} />
             <Route path="clubes/novo" element={<ClubRegistrationPage />} />
+            <Route path="clube/:id" element={<ClubProfilePage />} />
             <Route path="estatisticas" element={<StatsPage />} />
             <Route path="*" element={<Navigate to="/inicio" replace />} />
           </Route>
