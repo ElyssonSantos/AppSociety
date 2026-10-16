@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { SOCIETY_POSITIONS, SocietyPosition } from '../../types';
 import { compressImage } from '../../utils/imageCompressor';
 
 export const PlayerRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const { teams, addPlayer } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [name, setName] = useState('');
   const [shirtNumber, setShirtNumber] = useState<number>(10);
@@ -38,31 +40,33 @@ export const PlayerRegistrationPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
 
-    setIsSubmitting(true);
-    setErrorMessage('');
+    requestAction(async () => {
+      setIsSubmitting(true);
+      setErrorMessage('');
 
-    try {
-      await addPlayer({
-        name: name.trim(),
-        number: shirtNumber,
-        position,
-        teamId: selectedTeamId || undefined,
-        photoUrl: photoUrl || preview || undefined,
-      });
+      try {
+        await addPlayer({
+          name: name.trim(),
+          number: shirtNumber,
+          position,
+          teamId: selectedTeamId || undefined,
+          photoUrl: photoUrl || preview || undefined,
+        });
 
-      setSavedSuccess(true);
-      setTimeout(() => {
-        navigate('/elencos');
-      }, 1000);
-    } catch (err: any) {
-      console.error('Erro ao salvar atleta:', err);
-      setErrorMessage('Erro ao salvar atleta no banco de dados. Tente novamente.');
-      setIsSubmitting(false);
-    }
+        setSavedSuccess(true);
+        setTimeout(() => {
+          navigate('/elencos');
+        }, 1000);
+      } catch (err: any) {
+        console.error('Erro ao salvar atleta:', err);
+        setErrorMessage('Erro ao salvar atleta no banco de dados. Tente novamente.');
+        setIsSubmitting(false);
+      }
+    });
   };
 
   return (
@@ -242,9 +246,14 @@ export const PlayerRegistrationPage: React.FC = () => {
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">
-              {isSubmitting ? 'sync' : 'person_add'}
+              {isSubmitting ? 'sync' : isUnlocked ? 'person_add' : 'lock'}
             </span>
-            {isSubmitting ? 'Salvando...' : 'Salvar e Cadastrar Atleta'}
+            <span>{isSubmitting ? 'Salvando...' : 'Salvar e Cadastrar Atleta'}</span>
+            {!isUnlocked && name.trim() && !isSubmitting && (
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                Requer código
+              </span>
+            )}
           </button>
         </form>
       </div>

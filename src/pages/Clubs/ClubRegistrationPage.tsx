@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { compressImage } from '../../utils/imageCompressor';
 
 export const ClubRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const { addTeam } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [name, setName] = useState('');
   const [shieldUrl, setShieldUrl] = useState('');
@@ -38,20 +40,22 @@ export const ClubRegistrationPage: React.FC = () => {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
 
-    setIsSubmitting(true);
-    setErrorMessage('');
+    requestAction(async () => {
+      setIsSubmitting(true);
+      setErrorMessage('');
 
-    try {
-      await addTeam(name.trim(), shieldUrl || preview || undefined);
-      setCreatedSuccess(true);
-      setTimeout(() => {
-        navigate('/clubes');
-      }, 1000);
-    } catch (err: any) {
-      console.error('Erro ao salvar clube:', err);
-      setErrorMessage('Erro ao salvar clube no banco de dados. Tente novamente.');
-      setIsSubmitting(false);
-    }
+      try {
+        await addTeam(name.trim(), shieldUrl || preview || undefined);
+        setCreatedSuccess(true);
+        setTimeout(() => {
+          navigate('/clubes');
+        }, 1000);
+      } catch (err: any) {
+        console.error('Erro ao salvar clube:', err);
+        setErrorMessage('Erro ao salvar clube no banco de dados. Tente novamente.');
+        setIsSubmitting(false);
+      }
+    });
   };
 
   return (
@@ -173,6 +177,7 @@ export const ClubRegistrationPage: React.FC = () => {
           <button
             type="submit"
             disabled={!name.trim() || isSubmitting}
+            title={isUnlocked ? 'Confirmar Criação' : 'Acesso restrito: Digite o código para salvar'}
             className={`w-full py-4 rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
               name.trim() && !isSubmitting
                 ? 'bg-slate-900 text-white hover:bg-black cursor-pointer'
@@ -180,9 +185,9 @@ export const ClubRegistrationPage: React.FC = () => {
             }`}
           >
             <span className="material-symbols-outlined text-[24px]">
-              {isSubmitting ? 'sync' : 'add_circle'}
+              {isSubmitting ? 'sync' : !isUnlocked ? 'lock' : 'add_circle'}
             </span>
-            {isSubmitting ? 'Salvando...' : 'Confirmar Criação'}
+            {isSubmitting ? 'Salvando...' : !isUnlocked ? 'Desbloquear & Criar Equipe' : 'Confirmar Criação'}
           </button>
         </form>
 

@@ -13,8 +13,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { LiveMatchFull, MatchEvent, MatchHistoryEntry, Player, Team, UpcomingMatch } from '../types';
+import { useAccessCode } from './AccessCodeContext';
 
 interface AppContextType {
+  isUnlocked: boolean;
   liveMatch: LiveMatchFull;
   upcomingMatches: UpcomingMatch[];
   players: Player[];
@@ -106,6 +108,7 @@ const normalizeTimerStartedAt = (raw: unknown): number | undefined => {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isUnlocked, requestAction } = useAccessCode();
   const [liveMatch, setLiveMatch] = useState<LiveMatchFull>(() =>
     loadFromLS<LiveMatchFull>(LS_LIVE, DEFAULT_IDLE_MATCH)
   );
@@ -1035,6 +1038,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider
       value={{
+        isUnlocked,
         liveMatch,
         upcomingMatches,
         players,

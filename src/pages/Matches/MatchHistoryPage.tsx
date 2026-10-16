@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { MatchEvent, MatchHistoryEntry } from '../../types';
 
 const formatDate = (iso: string) => {
@@ -20,9 +21,10 @@ const HistoryCard: React.FC<{
   entry: MatchHistoryEntry;
   homeShield: string;
   awayShield: string;
+  isUnlocked: boolean;
   onEdit: () => void;
   onDelete: () => void;
-}> = ({ entry, homeShield, awayShield, onEdit, onDelete }) => {
+}> = ({ entry, homeShield, awayShield, isUnlocked, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
 
   const winner =
@@ -57,20 +59,24 @@ const HistoryCard: React.FC<{
                 e.stopPropagation();
                 onEdit();
               }}
-              title="Editar partida e lances"
-              className="w-7 h-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-amber-500 hover:border-amber-400 transition-colors"
+              title={isUnlocked ? 'Editar partida e lances' : 'Acesso restrito: Editar partida'}
+              className="w-7 h-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-amber-500 hover:border-amber-400 transition-colors relative"
             >
-              <span className="material-symbols-outlined text-[14px]">edit</span>
+              <span className="material-symbols-outlined text-[14px]">
+                {isUnlocked ? 'edit' : 'lock'}
+              </span>
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
               }}
-              title="Excluir partida do histórico"
-              className="w-7 h-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-rose-600 transition-colors"
+              title={isUnlocked ? 'Excluir partida do histórico' : 'Acesso restrito: Excluir partida'}
+              className="w-7 h-7 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-rose-600 transition-colors relative"
             >
-              <span className="material-symbols-outlined text-[14px]">delete</span>
+              <span className="material-symbols-outlined text-[14px]">
+                {isUnlocked ? 'delete' : 'lock'}
+              </span>
             </button>
           </div>
         </div>
@@ -455,6 +461,7 @@ const EditMatchHistoryModal: React.FC<{
 export const MatchHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { matchHistory, deleteMatchHistoryEntry, updateMatchHistoryEntry, getTeamShield } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<MatchHistoryEntry | null>(null);
 
@@ -508,8 +515,9 @@ export const MatchHistoryPage: React.FC = () => {
               entry={entry}
               homeShield={getTeamShield(entry.homeTeam)}
               awayShield={getTeamShield(entry.awayTeam)}
-              onEdit={() => setEditingEntry(entry)}
-              onDelete={() => setDeletingId(entry.id)}
+              isUnlocked={isUnlocked}
+              onEdit={() => requestAction(() => setEditingEntry(entry))}
+              onDelete={() => requestAction(() => setDeletingId(entry.id))}
             />
           ))}
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { SoccerBallLogo } from '../common/SoccerBallLogo';
+import { useAccessCode } from '../../context/AccessCodeContext';
 
 interface SidebarProps {
   isOpenMobile?: boolean;
@@ -27,6 +28,8 @@ const secondaryLinks: SidebarLink[] = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile }) => {
+  const { isUnlocked, lock, openModal } = useAccessCode();
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -106,14 +109,49 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           </div>
         </div>
 
-        {/* Bottom User Card / Status */}
-        <div className="p-3 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
-          <SoccerBallLogo size={34} />
-          <div className="min-w-0 flex-1">
-            <p className="font-headline-md text-body-sm font-bold text-on-surface truncate">MopaFut</p>
-            <span className="font-label-badge text-[10px] text-secondary flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Society dos quebrados
-            </span>
+        {/* Bottom User Card & Access Control */}
+        <div className="space-y-2">
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`material-symbols-outlined text-[18px] ${isUnlocked ? 'text-emerald-600' : 'text-slate-400'}`}>
+                {isUnlocked ? 'lock_open' : 'lock'}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">
+                  {isUnlocked ? 'Edição Liberada' : 'Modo Público'}
+                </p>
+                <p className="text-[9px] text-slate-500 leading-tight">
+                  {isUnlocked ? 'Sessão em memória' : 'Ações protegidas'}
+                </p>
+              </div>
+            </div>
+            {isUnlocked ? (
+              <button
+                onClick={lock}
+                title="Bloquear edições agora"
+                className="px-2 py-1 text-[10px] font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Bloquear
+              </button>
+            ) : (
+              <button
+                onClick={() => openModal()}
+                title="Digitar código de acesso"
+                className="px-2 py-1 text-[10px] font-bold bg-[#e63946] hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                Liberar
+              </button>
+            )}
+          </div>
+
+          <div className="p-3 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
+            <SoccerBallLogo size={34} />
+            <div className="min-w-0 flex-1">
+              <p className="font-headline-md text-body-sm font-bold text-on-surface truncate">MopaFut</p>
+              <span className="font-label-badge text-[10px] text-secondary flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Society dos quebrados
+              </span>
+            </div>
           </div>
         </div>
       </aside>

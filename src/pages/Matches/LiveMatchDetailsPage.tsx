@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { LiveMatchFull, MatchEvent } from '../../types';
 import { Confetti } from '../../components/common/Confetti';
 import { TacticsPage } from '../Tactics/TacticsPage';
@@ -59,10 +60,18 @@ export const LiveMatchDetailsPage: React.FC = () => {
     getTeamShield,
     calculateRemainingSeconds,
   } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [nowMs, setNowMs] = useState<number>(Date.now());
   const [showConfetti, setShowConfetti] = useState(false);
   const [isTacticsOpen, setIsTacticsOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmColor: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // States for Goal Flow
   const [goalFlowTeam, setGoalFlowTeam] = useState<'home' | 'away' | null>(null);
@@ -94,34 +103,54 @@ export const LiveMatchDetailsPage: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleManualFinish = async () => {
-    if (window.confirm("Encerrar partida?\nEssa ação finalizará o jogo e enviará os dados para o histórico.")) {
-      await finishLiveMatch();
-    }
+  const handleManualFinish = () => {
+    requestAction(() => {
+      setConfirmDialog({
+        title: 'Encerrar Partida?',
+        message: 'Essa ação finalizará o jogo e enviará os dados e estatísticas para o histórico.',
+        confirmLabel: 'Sim, Encerrar',
+        confirmColor: 'bg-rose-600 hover:bg-rose-700',
+        onConfirm: async () => {
+          await finishLiveMatch();
+          setConfirmDialog(null);
+        },
+      });
+    });
   };
 
-  const handleResetMatch = async () => {
-    if (window.confirm("Resetar cronômetro? O tempo voltará para o início.")) {
-      await setMatchClockMinutes(liveMatch.durationMinutes || 15);
-    }
+  const handleResetMatch = () => {
+    requestAction(() => {
+      setConfirmDialog({
+        title: 'Resetar Cronômetro?',
+        message: 'O tempo voltará para a duração inicial da partida.',
+        confirmLabel: 'Sim, Resetar',
+        confirmColor: 'bg-slate-900 hover:bg-black',
+        onConfirm: async () => {
+          await setMatchClockMinutes(liveMatch.durationMinutes || 15);
+          setConfirmDialog(null);
+        },
+      });
+    });
   };
 
   const submitGoal = async (assistId?: string) => {
     if (!goalFlowTeam || !selectedScorerId) return;
 
-    const initialSeconds = (liveMatch.durationMinutes || 15) * 60;
-    const currentMinuteLabel = `${Math.floor((initialSeconds - secondsLeft) / 60) + 1}'`;
+    requestAction(async () => {
+      const initialSeconds = (liveMatch.durationMinutes || 15) * 60;
+      const currentMinuteLabel = `${Math.floor((initialSeconds - secondsLeft) / 60) + 1}'`;
 
-    await addMatchEvent({
-      type: 'goal',
-      team: goalFlowTeam,
-      playerId: selectedScorerId,
-      assistPlayerId: assistId,
-      minute: currentMinuteLabel,
+      await addMatchEvent({
+        type: 'goal',
+        team: goalFlowTeam,
+        playerId: selectedScorerId,
+        assistPlayerId: assistId,
+        minute: currentMinuteLabel,
+      });
+
+      setShowConfetti(true);
+      resetGoalFlow();
     });
-
-    setShowConfetti(true);
-    resetGoalFlow();
   };
 
   const resetGoalFlow = () => {
@@ -236,20 +265,26 @@ export const LiveMatchDetailsPage: React.FC = () => {
             {liveMatch.status === 'live' && (
               <div className="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button
-                  onClick={toggleLiveTimer}
-                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+                  onClick={() => requestAction(toggleLiveTimer)}
+                  title={isUnlocked ? (liveMatch.isTimerRunning ? 'Pausar' : 'Iniciar') : 'Acesso restrito: Requer código'}
+                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 relative"
                 >
                   <span className="material-symbols-outlined text-[24px]">
-                    {liveMatch.isTimerRunning ? 'pause' : 'play_arrow'}
+                    {isUnlocked
+                      ? (liveMatch.isTimerRunning ? 'pause' : 'play_arrow')
+                      : 'lock'}
                   </span>
                   <span>{liveMatch.isTimerRunning ? 'Pausar' : 'Iniciar'}</span>
                 </button>
 
                 <button
                   onClick={handleResetMatch}
-                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+                  title={isUnlocked ? 'Resetar cronômetro' : 'Acesso restrito: Resetar cronômetro'}
+                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 relative"
                 >
-                  <span className="material-symbols-outlined text-[24px]">refresh</span>
+                  <span className="material-symbols-outlined text-[24px]">
+                    {isUnlocked ? 'refresh' : 'lock'}
+                  </span>
                   <span>Resetar</span>
                 </button>
 
@@ -263,9 +298,12 @@ export const LiveMatchDetailsPage: React.FC = () => {
 
                 <button
                   onClick={handleManualFinish}
-                  className="p-3 rounded-xl bg-rose-600/90 hover:bg-rose-600 border border-rose-500/50 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+                  title={isUnlocked ? 'Encerrar partida' : 'Acesso restrito: Encerrar partida'}
+                  className="p-3 rounded-xl bg-rose-600/90 hover:bg-rose-600 border border-rose-500/50 text-xs font-bold text-white flex flex-col items-center justify-center gap-1 transition-all active:scale-95 relative"
                 >
-                  <span className="material-symbols-outlined text-[24px]">flag</span>
+                  <span className="material-symbols-outlined text-[24px]">
+                    {isUnlocked ? 'flag' : 'lock'}
+                  </span>
                   <span>Encerrar</span>
                 </button>
               </div>
@@ -276,24 +314,38 @@ export const LiveMatchDetailsPage: React.FC = () => {
         {/* Simplificação Lances (Apenas GOLS) */}
         {liveMatch.status === 'live' && !goalFlowTeam && (
           <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3 border border-slate-200">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined">sports_score</span>
-              Registrar Gol
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined">sports_score</span>
+                Registrar Gol
+              </h2>
+              {!isUnlocked && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">lock</span>
+                  Requer código
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setGoalFlowTeam('home')}
-                className="py-6 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all flex flex-col items-center gap-2 active:scale-95"
+                onClick={() => requestAction(() => setGoalFlowTeam('home'))}
+                className="py-6 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all flex flex-col items-center gap-2 active:scale-95 relative"
               >
                 <img src={homeShield} alt="Home" className="w-12 h-12 rounded-full object-cover shadow-sm" />
                 <span className="text-emerald-700 font-black uppercase text-sm">GOL</span>
+                {!isUnlocked && (
+                  <span className="material-symbols-outlined text-[16px] text-amber-500 absolute top-2 right-2">lock</span>
+                )}
               </button>
               <button
-                onClick={() => setGoalFlowTeam('away')}
-                className="py-6 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all flex flex-col items-center gap-2 active:scale-95"
+                onClick={() => requestAction(() => setGoalFlowTeam('away'))}
+                className="py-6 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all flex flex-col items-center gap-2 active:scale-95 relative"
               >
                 <img src={awayShield} alt="Away" className="w-12 h-12 rounded-full object-cover shadow-sm" />
                 <span className="text-emerald-700 font-black uppercase text-sm">GOL</span>
+                {!isUnlocked && (
+                  <span className="material-symbols-outlined text-[16px] text-amber-500 absolute top-2 right-2">lock</span>
+                )}
               </button>
             </div>
           </div>
@@ -402,6 +454,37 @@ export const LiveMatchDetailsPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Modal de Confirmação In-App (Substitui window.confirm) */}
+        {confirmDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="w-full max-w-sm bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-800 shadow-inner">
+                <span className="material-symbols-outlined text-[28px]">help</span>
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">{confirmDialog.title}</h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDialog.onConfirm}
+                  className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs transition-all shadow-md active:scale-95 ${confirmDialog.confirmColor}`}
+                >
+                  {confirmDialog.confirmLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </main>

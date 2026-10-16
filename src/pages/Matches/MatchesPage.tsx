@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MatchCreationModal } from '../../components/modals/MatchCreationModal';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { LiveMatchFull } from '../../types';
 
 const calculateRemainingSeconds = (match: LiveMatchFull, nowMs: number): number => {
@@ -34,6 +35,7 @@ export const MatchesPage: React.FC = () => {
     calculateRemainingSeconds,
     formatMatchClock,
   } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [nowMs, setNowMs] = useState<number>(Date.now());
   const DEFAULT_FALLBACK = 'https://i.imgur.com/2dRX6Mh.png';
@@ -63,12 +65,14 @@ export const MatchesPage: React.FC = () => {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === dropIndex) return;
 
-    const newMatches = [...upcomingMatches];
-    const [draggedItem] = newMatches.splice(draggedIndex, 1);
-    newMatches.splice(dropIndex, 0, draggedItem);
-    setUpcomingMatchesList(newMatches);
-    setDraggedIndex(null);
-    setDragOverIndex(null);
+    requestAction(() => {
+      const newMatches = [...upcomingMatches];
+      const [draggedItem] = newMatches.splice(draggedIndex, 1);
+      newMatches.splice(dropIndex, 0, draggedItem);
+      setUpcomingMatchesList(newMatches);
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+    });
   };
 
   const handleDragEnd = () => {
@@ -78,10 +82,12 @@ export const MatchesPage: React.FC = () => {
 
   const handleStartMatch = async (e: React.MouseEvent, matchId: string) => {
     e.stopPropagation();
-    const newId = await startUpcomingMatch(matchId);
-    if (newId) {
-      navigate(`/ao-vivo/${newId}`);
-    }
+    requestAction(async () => {
+      const newId = await startUpcomingMatch(matchId);
+      if (newId) {
+        navigate(`/ao-vivo/${newId}`);
+      }
+    });
   };
 
   const homeShield = getTeamShield(liveMatch.homeTeam.name);
@@ -103,11 +109,17 @@ export const MatchesPage: React.FC = () => {
           </h1>
         </div>
         <button
-          onClick={openCreationModal}
+          onClick={() => requestAction(openCreationModal)}
+          title={isUnlocked ? 'Criar nova partida' : 'Acesso restrito: Digite o código para criar'}
           className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center gap-1.5 shadow-md hover:bg-black active:scale-95 transition-all"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span className="material-symbols-outlined text-[18px]">
+            {isUnlocked ? 'add' : 'lock'}
+          </span>
           <span>Nova Partida</span>
+          {!isUnlocked && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />
+          )}
         </button>
       </div>
 
@@ -274,10 +286,16 @@ export const MatchesPage: React.FC = () => {
                     </div>
                     <button
                       onClick={(e) => handleStartMatch(e, m.id)}
-                      title="Iniciar este jogo agora"
-                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 transition-colors"
+                      title={
+                        isUnlocked
+                          ? 'Iniciar este jogo agora'
+                          : 'Acesso restrito: Iniciar este jogo agora'
+                      }
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-900 transition-colors flex items-center justify-center relative"
                     >
-                      <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                      <span className="material-symbols-outlined text-[18px]">
+                        {isUnlocked ? 'play_arrow' : 'lock'}
+                      </span>
                     </button>
                   </div>
                 </div>

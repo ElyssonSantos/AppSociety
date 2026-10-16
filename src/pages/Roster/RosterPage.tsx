@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { Player, SOCIETY_POSITIONS, SocietyPosition } from '../../types';
 import { RankingList } from '../../components/ranking/RankingList';
 
@@ -9,6 +10,7 @@ type RosterTab = 'atletas' | 'ranking';
 export const RosterPage: React.FC = () => {
   const navigate = useNavigate();
   const { players, teams, updatePlayer, deletePlayer } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
   const [activeTab, setActiveTab] = useState<RosterTab>('atletas');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -96,11 +98,17 @@ export const RosterPage: React.FC = () => {
           </h1>
         </div>
         <button
-          onClick={() => navigate('/jogador/novo')}
+          onClick={() => requestAction(() => navigate('/jogador/novo'))}
+          title={isUnlocked ? 'Cadastrar Atleta' : 'Acesso restrito: Cadastrar Atleta'}
           className="px-4 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-500/20 hover:bg-rose-700 active:scale-95 transition-all"
         >
-          <span className="material-symbols-outlined text-[18px]">person_add</span>
+          <span className="material-symbols-outlined text-[18px]">
+            {isUnlocked ? 'person_add' : 'lock'}
+          </span>
           <span>Atleta</span>
+          {!isUnlocked && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 ml-0.5" />
+          )}
         </button>
       </div>
 
@@ -168,10 +176,14 @@ export const RosterPage: React.FC = () => {
               </div>
               {!searchTerm && (
                 <button
-                  onClick={() => navigate('/elencos/novo')}
-                  className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+                  onClick={() => requestAction(() => navigate('/jogador/novo'))}
+                  title={isUnlocked ? 'Cadastrar Atleta' : 'Acesso restrito: Cadastrar Atleta'}
+                  className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors flex items-center gap-1.5"
                 >
-                  + Cadastrar Atleta
+                  <span className="material-symbols-outlined text-[16px]">
+                    {isUnlocked ? 'add' : 'lock'}
+                  </span>
+                  <span>Cadastrar Atleta</span>
                 </button>
               )}
             </div>
@@ -226,18 +238,28 @@ export const RosterPage: React.FC = () => {
                     {/* Edit & Delete Action Buttons */}
                     <div className="flex items-center gap-1 shrink-0">
                       <button
-                        onClick={(e) => handleOpenEdit(e, player)}
-                        title="Editar Atleta"
-                        className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestAction(() => handleOpenEdit(e, player));
+                        }}
+                        title={isUnlocked ? 'Editar Atleta' : 'Acesso restrito: Editar Atleta'}
+                        className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors relative"
                       >
-                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        <span className="material-symbols-outlined text-[16px]">
+                          {isUnlocked ? 'edit' : 'lock'}
+                        </span>
                       </button>
                       <button
-                        onClick={(e) => handleOpenDelete(e, player.id)}
-                        title="Excluir Atleta"
-                        className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestAction(() => handleOpenDelete(e, player.id));
+                        }}
+                        title={isUnlocked ? 'Excluir Atleta' : 'Acesso restrito: Excluir Atleta'}
+                        className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors relative"
                       >
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        <span className="material-symbols-outlined text-[16px]">
+                          {isUnlocked ? 'delete' : 'lock'}
+                        </span>
                       </button>
                     </div>
                   </div>

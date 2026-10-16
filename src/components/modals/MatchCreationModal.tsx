@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 
 interface MatchCreationModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { availableClubNames, createNewMatch, addUpcomingMatch } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [team1, setTeam1] = useState(availableClubNames[0] || '');
   const [team2, setTeam2] = useState(availableClubNames[1] || '');
@@ -45,26 +47,30 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
   };
 
   const handleConfirmAndStart = () => {
-    const finalDuration = duration > 0 ? duration : 90;
-    const createdId = createNewMatch(team1, team2, finalDuration);
+    requestAction(async () => {
+      const finalDuration = duration > 0 ? duration : 90;
+      const createdId = await createNewMatch(team1, team2, finalDuration);
 
-    if (onCreateMatch) {
-      onCreateMatch({
-        homeTeam: team1,
-        awayTeam: team2,
-        duration: finalDuration,
-        id: createdId,
-      });
-    }
+      if (onCreateMatch) {
+        onCreateMatch({
+          homeTeam: team1,
+          awayTeam: team2,
+          duration: finalDuration,
+          id: createdId,
+        });
+      }
 
-    onClose();
-    navigate(`/ao-vivo/${createdId}`);
+      onClose();
+      navigate(`/ao-vivo/${createdId}`);
+    });
   };
 
   const handleAddToQueue = () => {
-    const finalDuration = duration > 0 ? duration : 90;
-    addUpcomingMatch(team1, team2, finalDuration);
-    onClose();
+    requestAction(async () => {
+      const finalDuration = duration > 0 ? duration : 90;
+      await addUpcomingMatch(team1, team2, finalDuration);
+      onClose();
+    });
   };
 
   if (!isOpen) return null;
@@ -232,15 +238,29 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
             onClick={handleConfirmAndStart}
             className="w-full py-3.5 rounded-xl bg-[#e63946] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:bg-rose-700 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-            Iniciar Agora (Ao Vivo)
+            <span className="material-symbols-outlined text-[20px]">
+              {isUnlocked ? 'play_arrow' : 'lock'}
+            </span>
+            <span>Iniciar Agora (Ao Vivo)</span>
+            {!isUnlocked && (
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                Requer código
+              </span>
+            )}
           </button>
           <button
             onClick={handleAddToQueue}
             className="w-full py-3 rounded-xl bg-slate-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow hover:bg-slate-900 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-[20px]">schedule</span>
-            Adicionar a Próximos Confrontos
+            <span className="material-symbols-outlined text-[20px]">
+              {isUnlocked ? 'schedule' : 'lock'}
+            </span>
+            <span>Adicionar a Próximos Confrontos</span>
+            {!isUnlocked && (
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                Requer código
+              </span>
+            )}
           </button>
           <button
             onClick={onClose}

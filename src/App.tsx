@@ -15,12 +15,14 @@ import { ClubRegistrationPage } from './pages/Clubs/ClubRegistrationPage';
 import { ClubProfilePage } from './pages/Clubs/ClubProfilePage';
 import { StatsPage } from './pages/Stats/StatsPage';
 import { AppProvider } from './context/AppContext';
+import { AccessCodeProvider } from './context/AccessCodeContext';
 import { GoogleAnalyticsTracker } from './components/common/GoogleAnalyticsTracker';
 
 export const App: React.FC = () => {
   return (
-    <AppProvider>
-      <BrowserRouter>
+    <AccessCodeProvider>
+      <AppProvider>
+        <BrowserRouter>
         <GoogleAnalyticsTracker />
         <Routes>
           <Route path="/" element={<AppLayout />}>
@@ -43,6 +45,7 @@ export const App: React.FC = () => {
         </Routes>
       </BrowserRouter>
     </AppProvider>
+  </AccessCodeProvider>
   );
 };
 

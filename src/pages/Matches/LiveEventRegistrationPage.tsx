@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { Confetti } from '../../components/common/Confetti';
 
 type EventType = 'goal' | 'yellow_card' | 'red_card' | 'sub' | 'shot' | 'foul';
@@ -24,6 +25,7 @@ const EVENT_BUTTONS: EventButton[] = [
 export const LiveEventRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const { liveMatch, players, teams, addMatchEvent } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [selectedType, setSelectedType] = useState<EventType | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string>('');
@@ -36,22 +38,24 @@ export const LiveEventRegistrationPage: React.FC = () => {
   const handleRegister = () => {
     if (!selectedType || !selectedPlayer || !minute) return;
 
-    if (selectedType === 'goal') {
-      setShowConfetti(true);
-    }
+    requestAction(async () => {
+      if (selectedType === 'goal') {
+        setShowConfetti(true);
+      }
 
-    addMatchEvent({
-      type: selectedType,
-      team: selectedTeam,
-      playerId: selectedPlayer,
-      assistPlayerId: selectedType === 'goal' && selectedAssist ? selectedAssist : undefined,
-      minute: `${minute}'`,
+      await addMatchEvent({
+        type: selectedType,
+        team: selectedTeam,
+        playerId: selectedPlayer,
+        assistPlayerId: selectedType === 'goal' && selectedAssist ? selectedAssist : undefined,
+        minute: `${minute}'`,
+      });
+
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate(-1);
+      }, 1200);
     });
-
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate(-1);
-    }, 1200);
   };
 
   const isFormValid = selectedType && selectedPlayer && minute;
@@ -241,8 +245,15 @@ export const LiveEventRegistrationPage: React.FC = () => {
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
           >
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            Confirmar e Salvar Lance
+            <span className="material-symbols-outlined text-[18px]">
+              {isUnlocked ? 'add_circle' : 'lock'}
+            </span>
+            <span>Confirmar e Salvar Lance</span>
+            {!isUnlocked && isFormValid && (
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold">
+                Requer código
+              </span>
+            )}
           </button>
         )}
       </div>

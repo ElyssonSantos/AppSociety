@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 
 const PlayerProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { players, teams, matchHistory, updatePlayer } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   const [editingRating, setEditingRating] = useState(false);
   const [ratingInput, setRatingInput] = useState('');
@@ -39,12 +41,14 @@ const PlayerProfilePage: React.FC = () => {
   const currentRating = player.rating || player.form || 0;
 
   const handleSaveRating = async () => {
-    const val = parseFloat(ratingInput);
-    if (!isNaN(val) && val >= 0 && val <= 10) {
-      await updatePlayer(player.id, { rating: parseFloat(val.toFixed(1)) });
-    }
-    setEditingRating(false);
-    setRatingInput('');
+    requestAction(async () => {
+      const val = parseFloat(ratingInput);
+      if (!isNaN(val) && val >= 0 && val <= 10) {
+        await updatePlayer(player.id, { rating: parseFloat(val.toFixed(1)) });
+      }
+      setEditingRating(false);
+      setRatingInput('');
+    });
   };
 
   return (
@@ -178,13 +182,18 @@ const PlayerProfilePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setRatingInput(String(currentRating));
-                    setEditingRating(true);
+                    requestAction(() => {
+                      setRatingInput(String(currentRating));
+                      setEditingRating(true);
+                    });
                   }}
                   aria-label="Editar nota média"
+                  title={isUnlocked ? 'Editar nota média' : 'Acesso restrito: Editar nota média'}
                   className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[16px] text-amber-400">edit</span>
+                  <span className="material-symbols-outlined text-[16px] text-amber-400">
+                    {isUnlocked ? 'edit' : 'lock'}
+                  </span>
                 </button>
               </div>
 

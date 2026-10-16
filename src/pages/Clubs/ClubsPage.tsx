@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAccessCode } from '../../context/AccessCodeContext';
 import { Team } from '../../types';
 
 export const ClubsPage: React.FC = () => {
   const navigate = useNavigate();
   const { teams, updateTeam, deleteTeam } = useApp();
+  const { isUnlocked, requestAction } = useAccessCode();
 
   // Edit Team State
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -41,19 +43,23 @@ export const ClubsPage: React.FC = () => {
     e.preventDefault();
     if (!editingTeam || !editName.trim()) return;
 
-    updateTeam(editingTeam.id, {
-      name: editName.trim(),
-      shieldUrl: editShieldUrl.trim() || editingTeam.shieldUrl,
-    });
+    requestAction(() => {
+      updateTeam(editingTeam.id, {
+        name: editName.trim(),
+        shieldUrl: editShieldUrl.trim() || editingTeam.shieldUrl,
+      });
 
-    setEditingTeam(null);
-    setEditShieldPreview(null);
+      setEditingTeam(null);
+      setEditShieldPreview(null);
+    });
   };
 
   const handleConfirmDelete = () => {
     if (deletingTeamId) {
-      deleteTeam(deletingTeamId);
-      setDeletingTeamId(null);
+      requestAction(() => {
+        deleteTeam(deletingTeamId);
+        setDeletingTeamId(null);
+      });
     }
   };
 
@@ -70,11 +76,17 @@ export const ClubsPage: React.FC = () => {
           </h1>
         </div>
         <button
-          onClick={() => navigate('/clubes/novo')}
+          onClick={() => requestAction(() => navigate('/clubes/novo'))}
+          title={isUnlocked ? 'Nova Equipe' : 'Acesso restrito: Nova Equipe'}
           className="px-4 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs flex items-center gap-1.5 shadow-md hover:bg-rose-700 active:scale-95 transition-all"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span className="material-symbols-outlined text-[18px]">
+            {isUnlocked ? 'add' : 'lock'}
+          </span>
           <span>Nova Equipe</span>
+          {!isUnlocked && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 ml-0.5" />
+          )}
         </button>
       </div>
 
@@ -90,10 +102,14 @@ export const ClubsPage: React.FC = () => {
               <p className="text-xs text-slate-500 mt-1 max-w-xs">Cadastre os clubes participantes para organizar confrontos e gerenciar elencos.</p>
             </div>
             <button
-              onClick={() => navigate('/clubes/novo')}
-              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors"
+              onClick={() => requestAction(() => navigate('/clubes/novo'))}
+              title={isUnlocked ? 'Nova Equipe' : 'Acesso restrito: Nova Equipe'}
+              className="px-4 py-2 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-colors flex items-center gap-1.5"
             >
-              + Nova Equipe
+              <span className="material-symbols-outlined text-[16px]">
+                {isUnlocked ? 'add' : 'lock'}
+              </span>
+              <span>+ Nova Equipe</span>
             </button>
           </div>
         ) : (
@@ -124,18 +140,34 @@ export const ClubsPage: React.FC = () => {
                 {/* Edit & Delete Actions */}
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleOpenEdit(team); }}
-                    title="Editar Equipe"
-                    className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestAction(() => handleOpenEdit(team));
+                    }}
+                    title={isUnlocked ? "Editar Equipe" : "Acesso restrito: Editar Equipe"}
+                    className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors shadow-sm relative"
                   >
                     <span className="material-symbols-outlined text-[18px]">edit</span>
+                    {!isUnlocked && (
+                      <span className="material-symbols-outlined text-[11px] absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 shadow-sm">
+                        lock
+                      </span>
+                    )}
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setDeletingTeamId(team.id); }}
-                    title="Excluir Equipe"
-                    className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestAction(() => setDeletingTeamId(team.id));
+                    }}
+                    title={isUnlocked ? "Excluir Equipe" : "Acesso restrito: Excluir Equipe"}
+                    className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors shadow-sm relative"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
+                    {!isUnlocked && (
+                      <span className="material-symbols-outlined text-[11px] absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 shadow-sm">
+                        lock
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>

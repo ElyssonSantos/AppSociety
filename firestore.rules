@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Leitura 100% pública para visitantes e torcedores
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // Regra recomendada para proteção no servidor:
+    // Apenas requisições autenticadas têm permissão de escrita.
+    // Quando o Firebase Authentication for ativado no Console,
+    // implemente a autenticação anônima ou por credencial associada
+    // ao código de acesso para validar a escrita diretamente no servidor.
+    match /{document=**} {
+      allow write: if request.auth != null;
+    }
+  }
+}
