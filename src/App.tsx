@@ -15,11 +15,13 @@ import { ClubRegistrationPage } from './pages/Clubs/ClubRegistrationPage';
 import { ClubProfilePage } from './pages/Clubs/ClubProfilePage';
 import { StatsPage } from './pages/Stats/StatsPage';
 import { AppProvider } from './context/AppContext';
+import { GoogleAnalyticsTracker } from './components/common/GoogleAnalyticsTracker';
 
 export const App: React.FC = () => {
   return (
     <AppProvider>
       <BrowserRouter>
+        <GoogleAnalyticsTracker />
         <Routes>
           <Route path="/" element={<AppLayout />}>
             <Route index element={<Navigate to="/inicio" replace />} />

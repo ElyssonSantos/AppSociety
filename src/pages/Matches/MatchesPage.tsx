@@ -93,7 +93,7 @@ export const MatchesPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div data-section="Cabeçalho Partidas" className="flex items-center justify-between">
         <div>
           <span className="text-[11px] text-slate-700 uppercase font-extrabold tracking-wider block">
             Partidas &amp; Competições
@@ -113,6 +113,7 @@ export const MatchesPage: React.FC = () => {
 
       {/* Live Match Active Banner */}
       <div
+        data-section="Banner Ao Vivo"
         onClick={() => navigate('/ao-vivo/' + liveMatch.id)}
         className="relative overflow-hidden rounded-2xl p-5 shadow-xl cursor-pointer active:scale-[0.99] transition-transform text-white border border-slate-700 mx-0"
       >
@@ -195,7 +196,7 @@ export const MatchesPage: React.FC = () => {
       </div>
 
       {/* Próximos Confrontos - Drag & Drop */}
-      <div className="space-y-3 pt-2">
+      <div data-section="Próximos Confrontos" className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-slate-900">
             Próximos Confrontos (Reordene arrastando)

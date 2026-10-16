@@ -3,7 +3,7 @@ import { TabelaClassificacao } from '../../components/TabelaClassificacao/Tabela
 
 export const StatsPage: React.FC = () => {
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
+    <div data-section="Tabela de Classificação" className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
       <div>
         <span className="text-[11px] text-[#e63946] uppercase font-bold tracking-wider block">
           Futebol Society 7v7

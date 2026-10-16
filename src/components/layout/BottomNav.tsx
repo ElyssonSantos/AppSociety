@@ -23,6 +23,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
+      data-section="Menu Inferior"
       aria-label="Navegação móvel principal"
       className="fixed bottom-0 w-full z-50 pb-safe bg-white border-t border-slate-200 shadow-sm"
     >

@@ -265,6 +265,7 @@ export const TacticsPage: React.FC<TacticsPageProps> = ({ isContextual = false }
 
   return (
     <div
+      data-section="Quadro Tático"
       className={`flex flex-col w-full bg-slate-50 p-4 space-y-4 select-none ${isContextual ? 'pb-4' : 'min-h-screen pb-20'}`}
       onClick={() => setContextMenu(null)}
     >

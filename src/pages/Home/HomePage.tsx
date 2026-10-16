@@ -144,7 +144,7 @@ export const HomePage: React.FC = () => {
   return (
     <div className="flex flex-col w-full min-h-full bg-slate-50 pb-20">
       {/* ── HEADER ── */}
-      <header className="flex items-center justify-between px-5 pt-5 pb-3 bg-white border-b border-slate-100">
+      <header data-section="Cabeçalho Principal" className="flex items-center justify-between px-5 pt-5 pb-3 bg-white border-b border-slate-100">
         <div className="flex items-center gap-3">
           <SoccerBallLogo size={42} />
           <div>
@@ -155,7 +155,7 @@ export const HomePage: React.FC = () => {
       </header>
 
       {/* ── PRÓXIMA PARTIDA / EM ANDAMENTO CARD ── */}
-      <div className="mx-4 my-4">
+      <div data-section="Próxima Partida / Ao Vivo" className="mx-4 my-4">
         {isMatchLive || nextMatchItem ? (
           <div
             className="relative overflow-hidden rounded-2xl p-6 shadow-xl cursor-pointer hover:scale-[0.99] transition-transform text-white border border-slate-700/50"
@@ -281,7 +281,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* ── ÚLTIMOS JOGOS ── */}
-      <div className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+      <div data-section="Últimos Jogos" className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-slate-900">bar_chart</span>
@@ -365,7 +365,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* ── MELHORES JOGADORES ── */}
-      <div className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+      <div data-section="Melhores Jogadores" className="mx-4 mb-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-slate-900">trophy</span>
@@ -432,7 +432,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* ── ACESSO RÁPIDO ── */}
-      <div className="mx-4 mb-6">
+      <div data-section="Acesso Rápido" className="mx-4 mb-6">
         <h2 className="text-[15px] font-bold text-slate-900 mb-3">Acesso rápido</h2>
         <div className="grid grid-cols-3 gap-3">
           {QUICK_ACTIONS.map((action) => (

@@ -84,7 +84,7 @@ export const RosterPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
+    <div data-section="Gestão de Elencos e Ranking" className="flex flex-col w-full min-h-screen bg-slate-50 p-4 pb-20 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <div>
