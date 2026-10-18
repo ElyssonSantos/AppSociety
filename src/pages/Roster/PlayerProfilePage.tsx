@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAccessCode } from '../../context/AccessCodeContext';
+import { SOCIETY_POSITIONS, SocietyPosition } from '../../types';
+import { compressImage } from '../../utils/imageCompressor';
 
 const PlayerProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +13,18 @@ const PlayerProfilePage: React.FC = () => {
 
   const [editingRating, setEditingRating] = useState(false);
   const [ratingInput, setRatingInput] = useState('');
+
+  // States for Edit Player Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editNumber, setEditNumber] = useState(10);
+  const [editPosition, setEditPosition] = useState<SocietyPosition>('Pivô');
+  const [editTeamId, setEditTeamId] = useState('');
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Encontrar o jogador pelo ID
   const player = players.find((p) => p.id === id);
@@ -40,6 +54,54 @@ const PlayerProfilePage: React.FC = () => {
 
   const currentRating = player.rating || player.form || 0;
 
+  const handleOpenEditModal = () => {
+    setEditName(player.name);
+    setEditNumber(player.number || 10);
+    setEditPosition((player.position as SocietyPosition) || 'Pivô');
+    setEditTeamId(player.teamId || '');
+    setEditPhotoUrl(player.photoUrl || '');
+    setEditPhotoPreview(player.photoUrl || null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setIsCompressingPhoto(true);
+        const compressed = await compressImage(file, 250, 250, 0.75);
+        setEditPhotoPreview(compressed);
+        setEditPhotoUrl(compressed);
+      } catch (err) {
+        console.warn('Erro ao comprimir foto:', err);
+      } finally {
+        setIsCompressingPhoto(false);
+      }
+    }
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim() || isSavingEdit) return;
+
+    setIsSavingEdit(true);
+    try {
+      await updatePlayer(player.id, {
+        name: editName.trim(),
+        number: Number(editNumber) || 10,
+        position: editPosition,
+        teamId: editTeamId ? editTeamId : undefined,
+        photoUrl: editPhotoUrl.trim() || player.photoUrl || 'https://i.imgur.com/vnYcevV.png',
+      });
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error('Erro ao salvar atleta:', err);
+      alert('Erro ao atualizar atleta. Tente novamente.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleSaveRating = async () => {
     requestAction(async () => {
       const val = parseFloat(ratingInput);
@@ -68,6 +130,17 @@ const PlayerProfilePage: React.FC = () => {
             <span className="text-xs uppercase bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Em Forma
             </span>
+            <button
+              onClick={() => requestAction(() => handleOpenEditModal())}
+              title={isUnlocked ? 'Editar Atleta' : 'Acesso restrito: Editar Atleta'}
+              aria-label="Editar Atleta"
+              className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-transform active:scale-90 shadow-sm"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isUnlocked ? 'edit' : 'lock'}
+              </span>
+            </button>
             <button aria-label="Compartilhar Perfil" className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-transform active:scale-90 shadow-sm" type="button">
               <span className="material-symbols-outlined text-[20px]">share</span>
             </button>
@@ -246,6 +319,156 @@ const PlayerProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Editar Atleta */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-rose-50 text-[#e63946] flex items-center justify-center border border-rose-100">
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                </span>
+                <h3 className="text-base font-bold text-slate-900">Editar Atleta</h3>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-4 space-y-3">
+              {/* Photo Upload */}
+              <div className="flex flex-col items-center">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2 self-start">Foto do Atleta</label>
+                <div
+                  className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-slate-300 hover:border-[#e63946] cursor-pointer transition-colors bg-slate-50 group shadow-sm"
+                  onClick={() => editPhotoInputRef.current?.click()}
+                >
+                  <img
+                    src={editPhotoPreview || editPhotoUrl || 'https://i.imgur.com/vnYcevV.png'}
+                    alt="Foto"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://i.imgur.com/vnYcevV.png'; }}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="material-symbols-outlined text-white text-[22px]">add_a_photo</span>
+                  </div>
+                  {isCompressingPhoto && (
+                    <div className="absolute inset-0 bg-slate-900/70 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-[20px] animate-spin">progress_activity</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={editPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEditPhotoChange}
+                />
+                <span className="text-[10px] text-slate-500 mt-1">
+                  {isCompressingPhoto ? 'Otimizando imagem...' : 'Clique na foto para alterar do dispositivo'}
+                </span>
+
+                <div className="w-full mt-2">
+                  <input
+                    type="text"
+                    value={editPhotoUrl.startsWith('data:image') ? '' : editPhotoUrl}
+                    onChange={(e) => {
+                      setEditPhotoUrl(e.target.value);
+                      setEditPhotoPreview(e.target.value || null);
+                    }}
+                    placeholder="Ou cole o link direto da imagem (opcional)"
+                    className="w-full px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-xs focus:outline-none focus:border-[#e63946]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Nome do Atleta *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:border-[#e63946]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Posição (7v7)</label>
+                  <select
+                    value={editPosition}
+                    onChange={(e) => setEditPosition(e.target.value as SocietyPosition)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:outline-none focus:border-[#e63946]"
+                  >
+                    {SOCIETY_POSITIONS.map((pos) => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Nº Camisa</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={editNumber}
+                    onChange={(e) => setEditNumber(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:outline-none focus:border-[#e63946]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Equipe Vinculada</label>
+                <select
+                  value={editTeamId}
+                  onChange={(e) => setEditTeamId(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs focus:outline-none focus:border-[#e63946]"
+                >
+                  <option value="">-- Sem Equipe (Avulso) --</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit || isCompressingPhoto}
+                  className="flex-1 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow hover:bg-rose-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <span>Salvar Alterações</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

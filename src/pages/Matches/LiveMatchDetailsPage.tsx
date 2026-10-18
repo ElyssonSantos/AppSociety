@@ -84,8 +84,11 @@ export const LiveMatchDetailsPage: React.FC = () => {
   const awayShield = getTeamShield(liveMatch.awayTeam.name);
 
   const currentTeamName = goalFlowTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name;
-  const currentTeam = teams.find((t) => t.name === currentTeamName);
-  const filteredPlayers = players.filter((p) => p.teamId === currentTeam?.id);
+  const currentTeam = teams.find(
+    (t) => t.name.trim().toLowerCase() === (currentTeamName || '').trim().toLowerCase()
+  );
+  const teamPlayers = players.filter((p) => currentTeam && p.teamId === currentTeam.id);
+  const filteredPlayers = teamPlayers.length > 0 ? teamPlayers : players;
 
   // Ticker interval
   useEffect(() => {

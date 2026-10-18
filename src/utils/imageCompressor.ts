@@ -1,51 +1,101 @@
 /**
- * Utility to compress image files to small Base64 Data URLs (under 50KB)
- * preventing Firestore document size limit errors (1MB max).
+ * Utilitário para comprimir e redimensionar imagens para Data URLs leves (10KB - 40KB),
+ * garantindo compatibilidade total com o limite estrito de 1MB por documento do Firebase Firestore.
  */
 export const compressImage = (
-  file: File,
+  fileOrUrl: File | Blob | string,
   maxWidth: number = 300,
   maxHeight: number = 300,
-  quality: number = 0.7
+  quality: number = 0.75
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
+    // Se já for uma URL externa (http:// ou https://), retorna diretamente
+    if (typeof fileOrUrl === 'string') {
+      if (fileOrUrl.startsWith('http://') || fileOrUrl.startsWith('https://')) {
+        resolve(fileOrUrl);
+        return;
+      }
+      // Se já for uma Data URL pequena (menos de 50KB), retorna diretamente
+      if (fileOrUrl.startsWith('data:image/') && fileOrUrl.length < 50000) {
+        resolve(fileOrUrl);
+        return;
+      }
+    }
+
+    const processDataUrl = (dataUrl: string) => {
       const img = new Image();
-      img.src = event.target?.result as string;
+      img.crossOrigin = 'anonymous';
+
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
           }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
+
+          canvas.width = Math.max(1, width);
+          canvas.height = Math.max(1, height);
+
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
           }
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Tenta exportar em WebP (menor tamanho e suporte a transparência)
+          let compressed = canvas.toDataURL('image/webp', quality);
+          if (!compressed.startsWith('data:image/webp')) {
+            // Fallback para JPEG
+            compressed = canvas.toDataURL('image/jpeg', quality);
+          }
+
+          resolve(compressed);
+        } catch (err) {
+          console.warn('Erro no processamento canvas da imagem:', err);
+          resolve(dataUrl.length < 500000 ? dataUrl : 'https://i.imgur.com/vnYcevV.png');
         }
+      };
 
-        canvas.width = width;
-        canvas.height = height;
+      img.onerror = (err) => {
+        console.warn('Erro ao carregar imagem para compressão:', err);
+        resolve(typeof fileOrUrl === 'string' ? fileOrUrl : 'https://i.imgur.com/vnYcevV.png');
+      };
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(event.target?.result as string);
+      img.src = dataUrl;
+    };
+
+    if (typeof fileOrUrl === 'string') {
+      processDataUrl(fileOrUrl);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (!result) {
+          resolve('https://i.imgur.com/vnYcevV.png');
           return;
         }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
+        processDataUrl(result);
       };
-      img.onerror = (err) => reject(err);
-    };
-    reader.onerror = (err) => reject(err);
+      reader.onerror = (err) => {
+        console.warn('Erro FileReader:', err);
+        reject(err);
+      };
+      reader.readAsDataURL(fileOrUrl);
+    }
   });
 };

@@ -14,6 +14,7 @@ import {
 import { db } from '../lib/firebase';
 import { LiveMatchFull, MatchEvent, MatchHistoryEntry, Player, Team, UpcomingMatch } from '../types';
 import { useAccessCode } from './AccessCodeContext';
+import { sanitizeForFirestore } from '../utils/firestoreSanitizer';
 
 interface AppContextType {
   isUnlocked: boolean;
@@ -277,7 +278,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addTeam = async (name: string, shieldUrl?: string): Promise<Team> => {
     const newTeam: Team = {
       id: `team-${Date.now()}`,
-      name,
+      name: name.trim() || 'Nova Equipe',
       shieldUrl: shieldUrl || DEFAULT_FALLBACK_IMAGE,
       players: [],
       points: 0,
@@ -294,7 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTeams((prev) => [...prev, newTeam]);
 
     try {
-      await setDoc(doc(db, 'teams', newTeam.id), newTeam);
+      await setDoc(doc(db, 'teams', newTeam.id), sanitizeForFirestore(newTeam));
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
     }
@@ -306,7 +307,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((t) => (t.id === id ? { ...t, ...updatedData } : t))
     );
     try {
-      await updateDoc(doc(db, 'teams', id), updatedData);
+      await setDoc(doc(db, 'teams', id), sanitizeForFirestore(updatedData), { merge: true });
     } catch (err: any) {
       console.warn('Firestore update notice:', err?.message);
     }
@@ -362,10 +363,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (liveHomeLower === teamNameLower || liveAwayLower === teamNameLower) {
         setLiveMatch(DEFAULT_IDLE_MATCH);
         try {
-          await setDoc(doc(db, 'liveMatch', 'current'), {
+          await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
             ...DEFAULT_IDLE_MATCH,
             updatedAt: serverTimestamp(),
-          });
+          }));
         } catch {}
       }
 
@@ -394,8 +395,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPlayer = async (newPlayerData: Partial<Player>): Promise<Player> => {
     const created: Player = {
       id: `p-${Date.now()}`,
-      name: newPlayerData.name || 'Novo Atleta',
-      number: newPlayerData.number || 10,
+      name: newPlayerData.name?.trim() || 'Novo Atleta',
+      number: Number(newPlayerData.number) || 10,
       position: newPlayerData.position || 'Pivô',
       photoUrl: newPlayerData.photoUrl || DEFAULT_PLAYER_IMAGE,
       rating: newPlayerData.rating || 8.0,
@@ -404,7 +405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       form: 8.0,
       matches: 0,
       minutesPlayed: 0,
-      teamId: newPlayerData.teamId,
+      teamId: newPlayerData.teamId || undefined,
     };
 
     setPlayers((prev) => [created, ...prev]);
@@ -413,22 +414,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTeams((prevTeams) =>
         prevTeams.map((t) =>
           t.id === newPlayerData.teamId
-            ? { ...t, players: [...t.players, created.id] }
+            ? { ...t, players: [...(t.players || []), created.id] }
             : t
         )
       );
 
       const targetTeam = teams.find((t) => t.id === newPlayerData.teamId);
       if (targetTeam) {
-        const updatedPlayers = Array.from(new Set([...targetTeam.players, created.id]));
+        const updatedPlayers = Array.from(new Set([...(targetTeam.players || []), created.id]));
         try {
-          await updateDoc(doc(db, 'teams', targetTeam.id), { players: updatedPlayers });
+          await setDoc(doc(db, 'teams', targetTeam.id), { players: updatedPlayers }, { merge: true });
         } catch { /* ignore */ }
       }
     }
 
+    const firestorePlayer = sanitizeForFirestore({
+      ...created,
+      teamId: newPlayerData.teamId || null,
+    });
+
     try {
-      await setDoc(doc(db, 'players', created.id), created);
+      await setDoc(doc(db, 'players', created.id), firestorePlayer);
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
     }
@@ -439,8 +445,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPlayers((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
     );
+
+    const firestorePlayer: Record<string, any> = { ...updatedData };
+    if (updatedData.teamId === undefined || updatedData.teamId === '') {
+      firestorePlayer.teamId = null;
+    }
+
     try {
-      await updateDoc(doc(db, 'players', id), updatedData);
+      await setDoc(doc(db, 'players', id), sanitizeForFirestore(firestorePlayer), { merge: true });
     } catch (err: any) {
       console.warn('Firestore update notice:', err?.message);
     }
@@ -448,15 +460,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (updatedData.teamId !== undefined) {
       const newTeamId = updatedData.teamId;
       for (const t of teams) {
-        const hasPlayer = t.players.includes(id);
+        const currentPlayers = t.players || [];
+        const hasPlayer = currentPlayers.includes(id);
         const shouldHavePlayer = t.id === newTeamId;
 
         if (hasPlayer && !shouldHavePlayer) {
-          const filtered = t.players.filter((pid) => pid !== id);
-          try { await updateDoc(doc(db, 'teams', t.id), { players: filtered }); } catch {}
+          const filtered = currentPlayers.filter((pid) => pid !== id);
+          try { await setDoc(doc(db, 'teams', t.id), { players: filtered }, { merge: true }); } catch {}
         } else if (!hasPlayer && shouldHavePlayer) {
-          const added = [...t.players, id];
-          try { await updateDoc(doc(db, 'teams', t.id), { players: added }); } catch {}
+          const added = [...currentPlayers, id];
+          try { await setDoc(doc(db, 'teams', t.id), { players: added }, { merge: true }); } catch {}
         }
       }
     }
@@ -476,15 +489,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 2. Remove o atleta da lista de elenco em todos os clubes
     for (const t of teams) {
-      if (t.players.includes(id)) {
-        const updatedPlayersList = t.players.filter((pid) => pid !== id);
+      const currentPlayers = t.players || [];
+      if (currentPlayers.includes(id)) {
+        const updatedPlayersList = currentPlayers.filter((pid) => pid !== id);
         setTeams((prevTeams) =>
           prevTeams.map((teamItem) =>
             teamItem.id === t.id ? { ...teamItem, players: updatedPlayersList } : teamItem
           )
         );
         try {
-          await updateDoc(doc(db, 'teams', t.id), { players: updatedPlayersList });
+          await setDoc(doc(db, 'teams', t.id), { players: updatedPlayersList }, { merge: true });
         } catch {}
       }
     }
@@ -537,13 +551,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Promise<string> => {
     const newMatchId = `match-${Date.now()}`;
     const nowMs = Date.now();
+    const finalHome = (homeTeam || '').trim() || 'Time Casa';
+    const finalAway = (awayTeam || '').trim() || 'Time Visitante';
+    const finalDuration = durationMinutes > 0 ? durationMinutes : 15;
+
     const newMatchLocal: LiveMatchFull = {
       id: newMatchId,
-      homeTeam: { name: homeTeam, score: 0, icon: 'shield' },
-      awayTeam: { name: awayTeam, score: 0, icon: 'shield' },
+      homeTeam: { name: finalHome, score: 0, icon: 'shield' },
+      awayTeam: { name: finalAway, score: 0, icon: 'shield' },
       status: 'live',
-      clock: `${durationMinutes}:00`,
-      durationMinutes,
+      clock: `${finalDuration}:00`,
+      durationMinutes: finalDuration,
       elapsedSeconds: 0,
       isTimerRunning: true,
       timerStartedAt: nowMs,
@@ -557,11 +575,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closeCreationModal();
 
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...newMatchLocal,
         timerStartedAt: nowMs,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
     }
@@ -573,12 +591,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     awayTeam: string,
     durationMinutes: number
   ): Promise<void> => {
+    const finalHome = (homeTeam || '').trim() || 'Time Casa';
+    const finalAway = (awayTeam || '').trim() || 'Time Visitante';
+    const finalDuration = durationMinutes > 0 ? durationMinutes : 15;
+
     const newMatch: UpcomingMatch = {
       id: `upcoming-${Date.now()}`,
-      homeTeam,
-      awayTeam,
+      homeTeam: finalHome,
+      awayTeam: finalAway,
       dateLabel: 'HOJE',
-      time: `${durationMinutes} MIN`,
+      time: `${finalDuration} MIN`,
       venue: 'Quadra Society 01',
       competition: 'Jogo Casual',
     };
@@ -587,7 +609,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closeCreationModal();
 
     try {
-      await setDoc(doc(db, 'upcomingMatches', newMatch.id), newMatch);
+      await setDoc(doc(db, 'upcomingMatches', newMatch.id), sanitizeForFirestore(newMatch));
     } catch (err: any) {
       console.warn('Firestore write notice:', err?.message);
     }
@@ -621,11 +643,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       await deleteDoc(doc(db, 'upcomingMatches', matchId));
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...newMatchLocal,
         timerStartedAt: nowMs,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch (err: any) {
       console.warn('Firestore notice:', err?.message);
     }
@@ -655,11 +677,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(updatedLocal);
 
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...updatedLocal,
         timerStartedAt: newIsRunning ? now : null,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch (err: any) {
       console.warn('Firestore toggleTimer notice:', err?.message);
     }
@@ -670,10 +692,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = { ...liveMatch, durationMinutes: newDuration };
     setLiveMatch(updated);
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...updated,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch {}
   };
 
@@ -707,11 +729,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setLiveMatch(updatedLiveMatch);
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...updatedLiveMatch,
         timerStartedAt: null,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch {}
 
     // Persist to match history
@@ -724,12 +746,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       awayScore,
       competition: liveMatch.competition,
       venue: liveMatch.venue,
-      events: liveMatch.events,
+      events: (liveMatch.events || []).map((ev) => sanitizeForFirestore(ev)),
     };
 
     setMatchHistory((prev) => [historyEntry, ...prev]);
     try {
-      await setDoc(doc(db, 'matchHistory', historyEntry.id), historyEntry);
+      await setDoc(doc(db, 'matchHistory', historyEntry.id), sanitizeForFirestore(historyEntry));
     } catch {}
 
     // Update Team Stats
@@ -898,7 +920,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((m) => (m.id === id ? { ...m, ...updatedData } : m))
     );
     try {
-      await updateDoc(doc(db, 'matchHistory', id), updatedData);
+      await setDoc(doc(db, 'matchHistory', id), sanitizeForFirestore(updatedData), { merge: true });
     } catch (err: any) {
       console.warn('Firestore updateMatchHistoryEntry notice:', err?.message);
     }
@@ -925,7 +947,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       : undefined;
 
     const playerLabel = scorer ? scorer.name : playerId;
-    const assistLabel = assistPlayer ? assistPlayer.name : assistPlayerId;
+    const assistLabel = assistPlayer ? assistPlayer.name : (assistPlayerId || undefined);
 
     let eventDesc = description;
     if (!eventDesc) {
@@ -950,7 +972,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: type === 'foul' ? 'yellow_card' : type,
       player: playerLabel,
       team,
-      assist: assistLabel,
+      ...(assistLabel ? { assist: assistLabel } : {}),
       description: eventDesc,
     };
 
@@ -963,7 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...liveMatch,
       homeTeam: { ...liveMatch.homeTeam, score: updatedHomeScore },
       awayTeam: { ...liveMatch.awayTeam, score: updatedAwayScore },
-      events: [newEvent, ...liveMatch.events],
+      events: [newEvent, ...(liveMatch.events || [])],
     };
 
     setLiveMatch(updatedMatch);
@@ -972,12 +994,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Salva estado completo no Firestore notificando instantaneamente todos os dispositivos escutando.
       // timerStartedAt é persistido explicitamente como número (epoch ms) para evitar
       // problemas de conversão de Timestamp entre dispositivos.
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...updatedMatch,
         // Garantir que timerStartedAt seja sempre um número simples, nunca um Timestamp object
         timerStartedAt: typeof updatedMatch.timerStartedAt === 'number' ? updatedMatch.timerStartedAt : null,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch (err: any) {
       console.warn('Firestore addMatchEvent notice:', err?.message);
     }
@@ -1014,11 +1036,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLiveMatch(updatedMatch);
 
     try {
-      await setDoc(doc(db, 'liveMatch', 'current'), {
+      await setDoc(doc(db, 'liveMatch', 'current'), sanitizeForFirestore({
         ...updatedMatch,
         timerStartedAt: liveMatch.isTimerRunning ? now : null,
         updatedAt: serverTimestamp(),
-      });
+      }));
     } catch {}
   };
 
@@ -1030,7 +1052,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await deleteDoc(d.ref);
       }
       for (const m of matches) {
-        await setDoc(doc(db, 'upcomingMatches', m.id), m);
+        await setDoc(doc(db, 'upcomingMatches', m.id), sanitizeForFirestore(m));
       }
     } catch {}
   };

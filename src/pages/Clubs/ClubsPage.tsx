@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAccessCode } from '../../context/AccessCodeContext';
 import { Team } from '../../types';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const ClubsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export const ClubsPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editShieldUrl, setEditShieldUrl] = useState('');
   const [editShieldPreview, setEditShieldPreview] = useState<string | null>(null);
+  const [isCompressingShield, setIsCompressingShield] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const editShieldInputRef = useRef<HTMLInputElement>(null);
 
   // Delete Team State
@@ -23,34 +26,45 @@ export const ClubsPage: React.FC = () => {
     setEditingTeam(team);
     setEditName(team.name);
     setEditShieldUrl(team.shieldUrl || '');
-    setEditShieldPreview(null);
+    setEditShieldPreview(team.shieldUrl || null);
   };
 
-  const handleShieldFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleShieldFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setEditShieldPreview(result);
-        setEditShieldUrl(result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsCompressingShield(true);
+        const compressed = await compressImage(file, 250, 250, 0.75);
+        setEditShieldPreview(compressed);
+        setEditShieldUrl(compressed);
+      } catch (err) {
+        console.warn('Erro ao comprimir escudo:', err);
+      } finally {
+        setIsCompressingShield(false);
+      }
     }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTeam || !editName.trim()) return;
+    if (!editingTeam || !editName.trim() || isSavingEdit) return;
 
-    requestAction(() => {
-      updateTeam(editingTeam.id, {
-        name: editName.trim(),
-        shieldUrl: editShieldUrl.trim() || editingTeam.shieldUrl,
-      });
+    requestAction(async () => {
+      setIsSavingEdit(true);
+      try {
+        await updateTeam(editingTeam.id, {
+          name: editName.trim(),
+          shieldUrl: editShieldUrl.trim() || editingTeam.shieldUrl || 'https://i.imgur.com/2dRX6Mh.png',
+        });
 
-      setEditingTeam(null);
-      setEditShieldPreview(null);
+        setEditingTeam(null);
+        setEditShieldPreview(null);
+      } catch (err) {
+        console.error('Erro ao salvar clube:', err);
+        alert('Erro ao atualizar clube. Tente novamente.');
+      } finally {
+        setIsSavingEdit(false);
+      }
     });
   };
 

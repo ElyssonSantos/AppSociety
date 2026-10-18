@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useAccessCode } from '../../context/AccessCodeContext';
 import { Player, SOCIETY_POSITIONS, SocietyPosition } from '../../types';
 import { RankingList } from '../../components/ranking/RankingList';
+import { compressImage } from '../../utils/imageCompressor';
 
 type RosterTab = 'atletas' | 'ranking';
 
@@ -22,6 +23,8 @@ export const RosterPage: React.FC = () => {
   const [editPosition, setEditPosition] = useState<string>('Pivô');
   const [editPhotoUrl, setEditPhotoUrl] = useState<string>('');
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // States for Deleting Confirmation Modal
@@ -41,36 +44,47 @@ export const RosterPage: React.FC = () => {
     setEditNumber(player.number || 10);
     setEditPosition(player.position || 'Pivô');
     setEditPhotoUrl(player.photoUrl || '');
-    setEditPhotoPreview(null);
+    setEditPhotoPreview(player.photoUrl || null);
   };
 
-  const handleEditPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setEditPhotoPreview(result);
-        setEditPhotoUrl(result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsCompressingPhoto(true);
+        const compressed = await compressImage(file, 250, 250, 0.75);
+        setEditPhotoPreview(compressed);
+        setEditPhotoUrl(compressed);
+      } catch (err) {
+        console.warn('Erro ao comprimir imagem:', err);
+      } finally {
+        setIsCompressingPhoto(false);
+      }
     }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPlayer || !editName.trim()) return;
+    if (!editingPlayer || !editName.trim() || isSavingEdit) return;
 
-    updatePlayer(editingPlayer.id, {
-      name: editName.trim(),
-      teamId: editTeamId || undefined,
-      number: editNumber,
-      position: editPosition,
-      photoUrl: editPhotoUrl || editingPlayer.photoUrl,
-    });
+    setIsSavingEdit(true);
+    try {
+      await updatePlayer(editingPlayer.id, {
+        name: editName.trim(),
+        teamId: editTeamId ? editTeamId : undefined,
+        number: Number(editNumber) || 10,
+        position: editPosition,
+        photoUrl: editPhotoUrl.trim() || editingPlayer.photoUrl || 'https://i.imgur.com/vnYcevV.png',
+      });
 
-    setEditingPlayer(null);
-    setEditPhotoPreview(null);
+      setEditingPlayer(null);
+      setEditPhotoPreview(null);
+    } catch (err) {
+      console.error('Erro ao salvar atleta:', err);
+      alert('Erro ao atualizar dados do atleta. Tente novamente.');
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const handleOpenDelete = (e: React.MouseEvent, playerId: string) => {
@@ -297,7 +311,7 @@ export const RosterPage: React.FC = () => {
               <div className="flex flex-col items-center">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-2 self-start">Foto do Atleta</label>
                 <div
-                  className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-slate-300 hover:border-[#e63946] cursor-pointer transition-colors bg-slate-50 group"
+                  className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-slate-300 hover:border-[#e63946] cursor-pointer transition-colors bg-slate-50 group shadow-sm"
                   onClick={() => editPhotoInputRef.current?.click()}
                 >
                   <img
@@ -309,6 +323,11 @@ export const RosterPage: React.FC = () => {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="material-symbols-outlined text-white text-[22px]">add_a_photo</span>
                   </div>
+                  {isCompressingPhoto && (
+                    <div className="absolute inset-0 bg-slate-900/70 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-[20px] animate-spin">progress_activity</span>
+                    </div>
+                  )}
                 </div>
                 <input
                   ref={editPhotoInputRef}
@@ -317,7 +336,22 @@ export const RosterPage: React.FC = () => {
                   className="hidden"
                   onChange={handleEditPhotoChange}
                 />
-                <span className="text-[10px] text-slate-500 mt-1.5">Clique na foto para alterar</span>
+                <span className="text-[10px] text-slate-500 mt-1">
+                  {isCompressingPhoto ? 'Otimizando imagem...' : 'Clique para carregar do dispositivo'}
+                </span>
+
+                <div className="w-full mt-2">
+                  <input
+                    type="text"
+                    value={editPhotoUrl.startsWith('data:image') ? '' : editPhotoUrl}
+                    onChange={(e) => {
+                      setEditPhotoUrl(e.target.value);
+                      setEditPhotoPreview(e.target.value || null);
+                    }}
+                    placeholder="Ou cole o link direto da imagem (opcional)"
+                    className="w-full px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-xs focus:outline-none focus:border-[#e63946]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -377,16 +411,25 @@ export const RosterPage: React.FC = () => {
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
+                  disabled={isSavingEdit}
                   onClick={() => { setEditingPlayer(null); setEditPhotoPreview(null); }}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-100"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium text-xs hover:bg-slate-100 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow hover:bg-rose-700"
+                  disabled={isSavingEdit || isCompressingPhoto}
+                  className="flex-1 py-2.5 rounded-xl bg-[#e63946] text-white font-bold text-xs shadow hover:bg-rose-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  Salvar Alterações
+                  {isSavingEdit ? (
+                    <>
+                      <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <span>Salvar Alterações</span>
+                  )}
                 </button>
               </div>
             </form>

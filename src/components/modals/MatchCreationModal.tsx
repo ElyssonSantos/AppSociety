@@ -30,8 +30,17 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
 
   const [team1, setTeam1] = useState(availableClubNames[0] || '');
   const [team2, setTeam2] = useState(availableClubNames[1] || '');
-  const [duration, setDuration] = useState<number>(90);
+  const [duration, setDuration] = useState<number>(15);
   const [customDuration, setCustomDuration] = useState<string>('');
+
+  React.useEffect(() => {
+    if (!team1 && availableClubNames.length > 0) {
+      setTeam1(availableClubNames[0]);
+    }
+    if (!team2 && availableClubNames.length > 1) {
+      setTeam2(availableClubNames[1]);
+    }
+  }, [availableClubNames]);
 
   const handleDurationSelect = (val: number) => {
     setDuration(val);
@@ -48,13 +57,15 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
 
   const handleConfirmAndStart = () => {
     requestAction(async () => {
-      const finalDuration = duration > 0 ? duration : 90;
-      const createdId = await createNewMatch(team1, team2, finalDuration);
+      const t1 = team1.trim() || availableClubNames[0] || 'Time Casa';
+      const t2 = team2.trim() || availableClubNames[1] || 'Time Visitante';
+      const finalDuration = duration > 0 ? duration : 15;
+      const createdId = await createNewMatch(t1, t2, finalDuration);
 
       if (onCreateMatch) {
         onCreateMatch({
-          homeTeam: team1,
-          awayTeam: team2,
+          homeTeam: t1,
+          awayTeam: t2,
           duration: finalDuration,
           id: createdId,
         });
@@ -67,8 +78,10 @@ export const MatchCreationModal: React.FC<MatchCreationModalProps> = ({
 
   const handleAddToQueue = () => {
     requestAction(async () => {
-      const finalDuration = duration > 0 ? duration : 90;
-      await addUpcomingMatch(team1, team2, finalDuration);
+      const t1 = team1.trim() || availableClubNames[0] || 'Time Casa';
+      const t2 = team2.trim() || availableClubNames[1] || 'Time Visitante';
+      const finalDuration = duration > 0 ? duration : 15;
+      await addUpcomingMatch(t1, t2, finalDuration);
       onClose();
     });
   };

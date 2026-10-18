@@ -145,11 +145,12 @@ export const LiveEventRegistrationPage: React.FC = () => {
           <div className="flex flex-col gap-1.5">
             {(() => {
               const currentTeamName = selectedTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name;
-              const currentTeam = teams.find(t => t.name === currentTeamName);
-              const filteredPlayers = players.filter(p => p.teamId === currentTeam?.id);
+              const currentTeam = teams.find(t => t.name.trim().toLowerCase() === (currentTeamName || '').trim().toLowerCase());
+              const teamPlayers = players.filter(p => currentTeam && p.teamId === currentTeam.id);
+              const filteredPlayers = teamPlayers.length > 0 ? teamPlayers : players;
 
               if (filteredPlayers.length === 0) {
-                return <p className="text-xs text-slate-500 font-medium text-center py-4">Nenhum jogador cadastrado neste time.</p>;
+                return <p className="text-xs text-slate-500 font-medium text-center py-4">Nenhum jogador cadastrado no sistema.</p>;
               }
 
               return filteredPlayers.map((player) => (
@@ -197,10 +198,12 @@ export const LiveEventRegistrationPage: React.FC = () => {
                 <option value="">-- Nenhuma assistência --</option>
                 {(() => {
                   const currentTeamName = selectedTeam === 'home' ? liveMatch.homeTeam.name : liveMatch.awayTeam.name;
-                  const currentTeam = teams.find(t => t.name === currentTeamName);
-                  const filteredPlayers = players.filter(p => p.teamId === currentTeam?.id && p.id !== selectedPlayer);
+                  const currentTeam = teams.find(t => t.name.trim().toLowerCase() === (currentTeamName || '').trim().toLowerCase());
+                  const teamPlayers = players.filter(p => currentTeam && p.teamId === currentTeam.id);
+                  const availablePlayers = teamPlayers.length > 0 ? teamPlayers : players;
+                  const assistCandidates = availablePlayers.filter(p => p.id !== selectedPlayer);
 
-                  return filteredPlayers.map((p) => (
+                  return assistCandidates.map((p) => (
                     <option key={`ast-reg-${p.id}`} value={p.id}>
                       #{p.number} {p.name} ({p.position})
                     </option>
